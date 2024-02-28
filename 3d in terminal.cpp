@@ -22,10 +22,11 @@ struct Point3 {
 struct Point2 {
     int x;
     int y;
+    int z;
 
 };
 
-std::vector<std::vector<int>>points = { {1,1,1,0,0,0},{-1,-1,-1,-0,-0,-0} };
+std::vector<std::vector<int>>points = { {1,1,1,0,0,0}};
 float x_rotation = 0;
 float y_rotation = 0;
 float px = 0;
@@ -63,23 +64,26 @@ void add_rotation(float x_rotation, float y_rotation, float& x_co, float& y_co, 
     float new_z_co = x_co * std::sin(x_rotation) + z_co * std::cos(x_rotation);
     float new_y_co = y_co * std::sin(y_rotation) + new_z_co * std::cos(y_rotation);
     new_z_co = y_co * std::cos(y_rotation) - new_z_co * std::sin(y_rotation);
-    if (new_z_co != 0) {
+    /*if (new_z_co != 0) {
         x_co = (new_x_co / new_z_co)*100;
         y_co = (new_y_co / new_z_co)*100;
     }
     else {
         x_co = 999999;
         y_co = 999999;
-    }
+    }*/
+    x_co = new_x_co;
+    y_co = new_y_co;
+    z_co = new_z_co;
 }
 
-void draw_screen(const std::vector<int>& screen) {
+void draw_screen(const std::vector<std::vector<int>>& screen) {
     std::string buffer; // Buffer to hold the entire screen content
     buffer.reserve(156 * 39 * 3); // Reserve space for the entire content
 
     for (int i = 0; i < 156 * 39; ++i) {
-        if (screen[i] != 0) {
-            buffer += std::to_string(screen[i]); // Append each number to the buffer
+        if (screen[i][0] != 0) {
+            buffer += std::to_string(screen[i][0]); // Append each number to the buffer
         }
         else {
             buffer += "_"; // Append each number to the buffer
@@ -113,81 +117,80 @@ std::vector<std::vector<int>> rasterize(Point2 a, Point2 b, Point2 c) {
     std::vector<std::vector<int>> rasterized;
     std::vector<int> x_co_for_lines_1;
     std::vector<int> x_co_for_lines_2;
+    std::vector<int> z_co_for_lines_1;
+    std::vector<int> z_co_for_lines_2;
     order_points(a, b, c);
     std::swap(c, a);
-    //std::swap(b, a);
-    //std::cout << c.y << " " << b.y << " " << a.y << std::endl;
-    //c>b>a
     for (int i = c.y; i > b.y; i--) {
-        
+
         if (b.y - c.y != 0) {
             x_co_for_lines_2.push_back((i - c.y) * (b.x - c.x) / (b.y - c.y) + c.x);
+            z_co_for_lines_2.push_back((i - c.y) * (b.z - c.z) / (b.y - c.y) + c.z);
         }
         else {
             x_co_for_lines_2.push_back(b.x);
+            z_co_for_lines_2.push_back(b.z);
         }
     }
     for (int i = b.y; i >= a.y; i--) {
         if (b.y - a.y != 0) {
             x_co_for_lines_2.push_back((i - b.y) * (a.x - b.x) / (a.y - b.y) + b.x);
+            z_co_for_lines_2.push_back((i - b.y) * (a.z - b.z) / (a.y - b.y) + b.z);
         }
         else {
             x_co_for_lines_2.push_back(a.x);
+            z_co_for_lines_2.push_back(a.z);
         }
     }
     for (int i = c.y; i >= a.y; i--) {
         if (c.y - a.y != 0) {
             x_co_for_lines_1.push_back((i - c.y) * (a.x - c.x) / (a.y - c.y) + c.x);
+            z_co_for_lines_1.push_back((i - c.y) * (a.z - c.z) / (a.y - c.y) + c.z);
         }
         else {
             x_co_for_lines_1.push_back(c.x);
+            z_co_for_lines_1.push_back(c.z);
         }
     }
-    
-    //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    for (int i = 0; i < x_co_for_lines_1.size();i++) {
+
+    for (int i = 0; i < x_co_for_lines_1.size(); i++) {
         if (x_co_for_lines_1[i] < x_co_for_lines_2[i]) {
             for (int x = x_co_for_lines_1[i]; x <= x_co_for_lines_2[i]; x++) {
-                rasterized.push_back({ x, c.y-i });
-                
+                //ADD Z COORDINATE
+                if (x_co_for_lines_1[i] != x_co_for_lines_2[i]) {
+                    rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) });
+                }
+                else {
+                    rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] });
+                }
             }
         }
         else {
             for (int x = x_co_for_lines_2[i]; x <= x_co_for_lines_1[i]; x++) {
-                rasterized.push_back({ x, c.y-i });
+                if (x_co_for_lines_1[i] != x_co_for_lines_2[i]) {
+                    rasterized.push_back({ x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) });
+                }
+                else {
+                    rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] });
+                }
             }
         }
     }
-    //std::cout << rasterized.size() << std::endl;
     return rasterized;
 }
 
-void update_screen(std::vector<int>& screen, std::vector<std::vector<int>> points, float x_rotation, float y_rotation, float px, float py, float pz) {
+void update_screen(std::vector<std::vector<int>>& screen, std::vector<std::vector<int>> points, float x_rotation, float y_rotation, float px, float py, float pz) {
     // Simulate some changes to the screen content
     std::vector<Point2> new_points;
+    for (int i=0; i < points.size(); i++) {
+        new_points.push_back({0,0,0});
+    }
     for (int i = 0; i < 40 * 156;i++) {
-        screen[i] = 0;
+        screen[i] = { 0,1000000000 };
     }
-    for (std::vector<int> point : points) {
-        float p_x_co = point[0]-px;
-        float p_y_co = point[1]-py;
-        float p_z_co = point[2]-pz;
-        Point3 point = { p_x_co, p_y_co, p_z_co };
-        if (isPointInFrontOfCamera(x_rotation, y_rotation, point)){
-            //std::cout << floor(sqrt(p_x_co*p_x_co+p_z_co*p_z_co)/(p_z_co)) << " " << floor(1/std::cos(x_rotation)) << std::endl;
-            add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co, p_y_co, p_z_co);
-            //std::cout << (fmod(x_rotation, 3.14 / 2)) << " " << std::atan((point[2] - pz) / (point[0] - px)) << " " << fmod( x_rotation, 3.14 / 2)-3.14/2 << std::endl;
 
-            p_x_co += 78;
-            p_y_co += 20;
-            Point2 point2 = { static_cast<int>(p_x_co),static_cast<int>(p_y_co) };
-            new_points.push_back(point2);
-            //std::cout << p_x_co << " " << p_y_co << std::endl;
-            if (p_y_co < 40 && p_y_co > 0 && p_x_co > 0 && p_x_co < 156) {
-                screen[156 * floor(p_y_co) + p_x_co] = 1;
-            }
-        }
-    }
+
+
 
     std::vector<std::vector<int>> faces = {
         // Front face
@@ -209,20 +212,68 @@ void update_screen(std::vector<int>& screen, std::vector<std::vector<int>> point
         {1, 5, 6},
         {6, 2, 1}
     };
+    int how_many_triangles=0;
+    
     for (int i = 0; i < points.size() / 8; i++) {
         for (std::vector<int> triangle : faces) {
-            std::vector<std::vector<int>> rasterized_points = rasterize(new_points[triangle[0] + 8 * i], new_points[triangle[1] + 8 * i], new_points[triangle[2] + 8 * i]);
-            for (std::vector<int> p : rasterized_points) {
-                int p_x_co = p[0];
-                int p_y_co = p[1];
-                //std::cout << p_x_co << " " << p_y_co << std::endl;
-                if (p_y_co < 40 && p_y_co > 0 && p_x_co > 0 && p_x_co < 156) {
-                    //std::cout << "f" << std::endl;
-                    screen[156 * floor(p_y_co) + p_x_co] = 1;
+            float p_x_co1 = points[i*8 + triangle[0]][0] - px;
+            float p_y_co1 = points[i * 8 + triangle[0]][1] - py;
+            float p_z_co1 = points[i * 8 + triangle[0]][2] - pz;
+            
+            float p_x_co2 = points[i * 8 + triangle[1]][0] - px;
+            float p_y_co2 = points[i * 8 + triangle[1]][1] - py;
+            float p_z_co2 = points[i * 8 + triangle[1]][2] - pz;
+
+            float p_x_co3 = points[i * 8 + triangle[2]][0] - px;
+            float p_y_co3 = points[i * 8 + triangle[2]][1] - py;
+            float p_z_co3 = points[i * 8 + triangle[2]][2] - pz;
+
+            Point3 point1 = { p_x_co1, p_y_co1, p_z_co1 };
+            Point3 point2 = { p_x_co2, p_y_co2, p_z_co2 };
+            Point3 point3 = { p_x_co3, p_y_co3, p_z_co3 };
+            if (isPointInFrontOfCamera(x_rotation, y_rotation, point1)&& isPointInFrontOfCamera(x_rotation, y_rotation, point2)&&isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
+                how_many_triangles++;
+                add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
+                add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co2, p_y_co2, p_z_co2);
+                add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co3, p_y_co3, p_z_co3);
+                if (   static_cast<int>(p_z_co1)* static_cast<int>(p_z_co2)* static_cast<int>(p_z_co3) == 0) {
+                    std::cout << "weuignriugnreiae" << std::endl;
                 }
+                new_points[i*8+triangle[0]]={ static_cast<int>(100 * p_x_co1),static_cast<int>(100 * p_y_co1), static_cast<int>(100 * p_z_co1) };
+                new_points[i * 8 + triangle[1]] = { static_cast<int>(100 * p_x_co2),static_cast<int>(100 * p_y_co2), static_cast<int>(100 * p_z_co2) };
+                new_points[i * 8 + triangle[2]] = { static_cast<int>(100 * p_x_co3),static_cast<int>(100 * p_y_co3), static_cast<int>(100 * p_z_co3) };
+            }
+            else {
+                std::cout << "e" << std::endl;
             }
         }
     }
+    std::cout << new_points.size() << std::endl;
+    if (new_points.size() != 0) {
+        for (int i = 0; i < new_points.size() / 8; i++) {
+            int loop_index = 0;
+            for (std::vector<int> triangle : faces) {
+                    std::vector<std::vector<int>> rasterized_points = rasterize(new_points[8*i+triangle[0]], new_points[8*i+triangle[1]], new_points[8*i+triangle[2]]);
+                    std::cout << rasterized_points.size();
+                    int triangle_index = 0;
+                    if (rasterized_points.size()) {
+                        loop_index++;
+                    }
+                    for (std::vector<int> p : rasterized_points) {
+                        
+                        int p_x_co = p[0];
+                        int p_y_co = p[1];
+                        int p_z_co = p[2];
+                        if (p_z_co != 0 && abs(100 * p_y_co / p_z_co)<20 && abs(100 * p_x_co / p_z_co)<78) {
+                            if (p_z_co < screen[156 * floor(100 * p_y_co / p_z_co) + 20 * 156 + 78 + 100 * p_x_co / p_z_co][1]) {
+                                screen[156 * floor(100 * p_y_co / p_z_co) + 20 * 156 + 78 + 100 * p_x_co / p_z_co] = { triangle[0]+1,p_z_co};
+                            }
+                        }
+                    }
+            }
+        }
+    }
+    
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
@@ -267,7 +318,7 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
 }
 
 int main() {
-    std::vector<int> screen(156 * 40);
+    std::vector<std::vector<int>> screen(156 * 40);
     cuboid_to_vertices(points);
     // Seed random number generator
     srand(static_cast<unsigned int>(time(nullptr)));
@@ -276,11 +327,6 @@ int main() {
         controls(x_rotation, y_rotation,px,py,pz);
         update_screen(screen, points, x_rotation, y_rotation, px, py, pz); // Update screen content
         draw_screen(screen);   // Draw updated screen
-        //std::cout << px << " " << py << " " << pz << std::endl;
-        //std::cout << y_rotation << std::endl;
-        //std::cout << x_rotation << std::endl;
-
-        // Sleep for a short duration to control the frame rate
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
