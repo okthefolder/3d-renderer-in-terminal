@@ -35,12 +35,21 @@ std::vector<char> characters = {
 };
 
 std::vector<std::vector<int>>points = { 
-        {0, 0, 0, 2, 2, 2},
-        {-1, -1, -1, 0, 0, 0},
-        {1, 1, 1, 3, 3, 3},
-        {3, 3, 3, 5, 5,5 },
-        {-2, -2, -2, -1, -1, -1} 
-        };
+    {0, 0, 0, 2, 2, 2},
+    {-1, -1, -1, 0, 0, 0},
+    {1, 1, 1, 3, 3, 3},
+    {3, 3, 3, 5, 5, 5},
+    {-2, -2, -2, -1, -1, -1},
+    {2, 2, 2, 4, 4, 4},
+    {-3, -3, -3, -2, -2, -2},
+    {0, 0, 0, 1, 1, 1},
+    {5, 5, 5, 6, 6, 6},
+    {-1, -1, -1, 1, 1, 1},
+    {0, 0, 0, 3, 3, 3},
+    {-2, -2, -2, 2, 2, 2},
+    {1, 1, 1, 4, 4, 4},
+    {-3, -3, -3, 1, 1, 1},
+    {2, 2, 2, 5, 5, 5} };
 float x_rotation = 0;
 float y_rotation = 0;
 float px = 0;
@@ -174,6 +183,7 @@ std::vector<Point2> intersection(Point2 p1, Point2 p2) {
 
         l1_intersection = { ((-(number_of_columns - 1) / 2 - p1.y) * ((p1.x - p2.x) / (p1.y - p2.y)) + p1.x), -(number_of_columns-1) / 2, z_1 };
         l2_intersection = { (((number_of_columns - 1) / 2 - p1.y) * ((p1.x - p2.x) / (p1.y - p2.y)) + p1.x), (number_of_columns - 1) / 2, z_2 };
+        //std::cout << "l1 " << l1_intersection.x << " " << l1_intersection.y << std::endl;
     }
     if (p1.x != p2.x){
 
@@ -183,9 +193,10 @@ std::vector<Point2> intersection(Point2 p1, Point2 p2) {
         float t4 = ((characters_per_row - 1) / 2 - p1.x) / (p2.x - p1.x);
         float z_4 = p1.z + t4 * (p2.z - p1.z);
 
-        l3_intersection = { (-(characters_per_row - 1) / 2,   (-(characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y),  z_3 };
+        l3_intersection = { (-(characters_per_row - 1) / 2),   (-(characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y,  z_3 };
+        //std::cout << "l3.x: " << l3_intersection.x<<" chp: "<< << std::endl;
         l4_intersection = { (characters_per_row - 1) / 2,   ((characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y, z_4 };
-        std::cout << (characters_per_row-1)/2<<" " << "l4:" << l4_intersection.x << " " << l4_intersection.y << std::endl;
+        //std::cout << -(characters_per_row-1)/2<<" " << "l3:" << l3_intersection.x << " " << l3_intersection.y << std::endl;
        
     }
     if (l1_intersection.x<=max(p1.x, p2.x) && l1_intersection.x >= min(p1.x, p2.x) && l1_intersection.y <= max(p1.y, p2.y) && l1_intersection.y >= min(p1.y, p2.y) && abs(l1_intersection.x)<characters_per_row/2 && abs(l1_intersection.y)<number_of_columns / 2 && l1_intersection.z!=0) {
@@ -197,7 +208,10 @@ std::vector<Point2> intersection(Point2 p1, Point2 p2) {
     if (l3_intersection.y<=max(p1.y, p2.y) && l3_intersection.y >= min(p1.y, p2.y) && l3_intersection.x <= max(p1.x, p2.x) && l3_intersection.x >= min(p1.x, p2.x) && abs(l3_intersection.x) < characters_per_row / 2 && abs(l3_intersection.y) < number_of_columns / 2 && l3_intersection.z != 0) {
         intersections.push_back(l3_intersection);
     }
-    if (l4_intersection.y<=max(p1.y, p2.y) && l4_intersection.y >= min(p1.y, p2.y) && l4_intersection.x <= max(p1.x, p2.x) && l4_intersection.x >= min(p1.x, p2.x) && abs(l4_intersection.x) < characters_per_row / 2 && abs(l4_intersection.y) < number_of_columns / 2 && l4_intersection.z != 0) {
+
+
+
+    if (l4_intersection.y<=max(p1.y, p2.y)+1 && l4_intersection.y >= min(p1.y, p2.y)-1 && l4_intersection.x <= max(p1.x, p2.x) && l4_intersection.x >= min(p1.x, p2.x) && abs(l4_intersection.x) <= characters_per_row / 2 && abs(l4_intersection.y) < number_of_columns / 2 && l4_intersection.z != 0) {
         intersections.push_back(l4_intersection);
     }
 
@@ -232,6 +246,27 @@ bool compareAngles(const Point2& p1, const Point2& p2, const Point2& centroid) {
     return angle1 < angle2;
 }
 
+std::vector<float> plane_equation(Point2 p1, Point2 p2, Point2 p3) {
+    // Calculate vectors v1 and v2
+    float v1x = p2.x - p1.x;
+    float v1y = p2.y - p1.y;
+    float v1z = p2.z - p1.z;
+
+    float v2x = p3.x - p1.x;
+    float v2y = p3.y - p1.y;
+    float v2z = p3.z - p1.z;
+
+    // Calculate the cross product to find the normal vector
+    float nx = v1y * v2z - v1z * v2y;
+    float ny = v1z * v2x - v1x * v2z;
+    float nz = v1x * v2y - v1y * v2x;
+
+    // Calculate D using the first point
+    float D = nx * p1.x + ny * p1.y + nz * p1.z;
+
+    return { nx, ny, nz, -D };
+}
+
 std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test) {
     std::vector<std::vector<float>> rasterized;
     std::vector<float> x_co_for_lines_1;
@@ -241,39 +276,45 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
     order_points(a, b, c);
     std::swap(c, a);
     if (max(abs(a.x), abs(b.x), abs(c.x)) >     characters_per_row / 2 || (max(abs(a.y), abs(b.y), abs(c.y)) > number_of_columns / 2)) {
+        //std::cout << "gg" << std::endl;
+        //std::cout << a.x << " a& " << a.y << std::endl;
+        //std::cout << b.x << " b& " << b.y << std::endl;
+        //std::cout << c.x << " c& " << c.y << std::endl;
             std::vector<Point2> a_b_intersection=intersection(a, b);
             std::vector<Point2> a_c_intersection = intersection(a, c);
             std::vector<Point2> b_c_intersection = intersection(b, c);
             std::vector<Point2> points_for_triangulation;
             if (is_point_inside_screen(a)) {
                 points_for_triangulation.push_back(a);
-                std::cout << a.x << " a " << a.y << std::endl;
+         //       std::cout << a.x << " a " << a.y << std::endl;
             };
             if (is_point_inside_screen(b)) { 
                 points_for_triangulation.push_back(b);
-                std::cout << b.x << " b " << b.y << std::endl;
+           //     std::cout << b.x << " b " << b.y << std::endl;
             };
             if (is_point_inside_screen(c)) { 
                 points_for_triangulation.push_back(c);
-                std::cout << c.x << " c " << c.y << std::endl;
+               // std::cout << c.x << " c " << c.y << std::endl;
             };
             for (Point2 p : a_b_intersection) {
-                std::cout << p.x << " a_b " << p.y <<" " <<p.z<< std::endl;
+               // std::cout << p.x << " a_b " << p.y <<" " <<p.z<< std::endl;
                 points_for_triangulation.push_back(p);
             }
             for (Point2 p : a_c_intersection) {
-                std::cout << p.x << " a_c " << p.y << " " << p.z << std::endl;
+                //std::cout << p.x << " a_c " << p.y << " " << p.z << std::endl;
                 points_for_triangulation.push_back(p);
             }
             for (Point2 p : b_c_intersection) {
-                std::cout << p.x << " b_c " << p.y << " " << p.z << std::endl;
+                //std::cout << p.x << " b_c " << p.y << " " << p.z << std::endl;
                 points_for_triangulation.push_back(p);
             }
             std::vector<Point2> screen_vertices = { {characters_per_row / 2 -1,number_of_columns / 2-1},{-characters_per_row / 2+1,-number_of_columns / 2+1},{characters_per_row / 2-1,-number_of_columns / 2+1},{-characters_per_row / 2+1,number_of_columns / 2 + 1} };
             for (int i = 0; i < 4; ++i) {
                 if (intpoint_inside_trigon(screen_vertices[i], a, b, c)) {
-                    std::cout << screen_vertices[i].x << " " << screen_vertices[i].y << std::endl;
-                    points_for_triangulation.push_back(screen_vertices[i]);
+                    std::vector<float> plane_coefficients=plane_equation(a, b, c);
+                    float p_z = -(plane_coefficients[3]+ plane_coefficients[0]* screen_vertices[i].x + plane_coefficients[1]* screen_vertices[i].y) / plane_coefficients[2];
+                   // std::cout << "SC" << screen_vertices[i].x << " " << screen_vertices[i].y << " " << p_z << std::endl;
+                    points_for_triangulation.push_back({screen_vertices[i].x,screen_vertices[i].y, p_z});
                 }
             }
             if (points_for_triangulation.size() != 0) {
@@ -286,16 +327,16 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
                     centroidy += p.y;
                 }
                 for (int i = 0; i < points_for_triangulation.size(); i++) {
-                    std::cout << "(" << points_for_triangulation[i].x << ", " << points_for_triangulation[i].y << ")" << std::endl;
+                    //std::cout << "(" << points_for_triangulation[i].x << ", " << points_for_triangulation[i].y << ")" << std::endl;
                 }
                 Point2 centroid = { centroidx / (points_for_triangulation.size()),centroidy / (points_for_triangulation.size()) ,1 };
                 std::sort(points_for_triangulation.begin(), points_for_triangulation.end(), [&](const Point2& p1, const Point2& p2) {
                     return compareAngles(p1, p2, centroid);
                     });
-                std::cout <<"polygon size:" << points_for_triangulation.size() << std::endl;
-                std::cout << "centre:" << centroid.x << " " << centroid.y << std::endl;
+                //std::cout <<"polygon size:" << points_for_triangulation.size() << std::endl;
+                //std::cout << "centre:" << centroid.x << " " << centroid.y << std::endl;
                 for (int i = 0; i < points_for_triangulation.size(); i++) {
-                    std::cout << "(" << points_for_triangulation[i].x << ", " << points_for_triangulation[i].y << ")" << std::endl;
+                    //std::cout << "(" << points_for_triangulation[i].x << ", " << points_for_triangulation[i].y << ")" << std::endl;
                 }
                 for (int i = 1; i < points_for_triangulation.size() - 1; i++) {
                     
@@ -319,25 +360,6 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
 
 
     }
-    /*if (a.z != 0 && b.z != 0 && c.z != 0) {
-        a.x /= a.z;
-        a.y /= a.z;
-        b.x /= b.z;
-        b.y /= b.z;
-        b.x /= c.z;
-        b.y /= c.z;
-    }
-    else {
-        a.z = 0;
-        b.z = 0;
-        c.z = 0;
-        a.x ==0;
-        a.y ==0;
-        b.x ==0;
-        b.y ==0;
-        b.x ==0;
-        b.y ==0;
-    }*/
     //std::cout << a.x << " " << a.y<<" " << b.x << " " << b.y << " " << c.x << " " << c.y << std::endl;
     for (float i = c.y; i > b.y; i--) {
 
@@ -396,7 +418,7 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
     }
     //std::cout << rasterized.size() << std::endl;
     if (test == 1) {
-        rasterized.push_back({ 0,0 });
+       // rasterized.push_back({ 0,0 });
     }
     return rasterized;
 }
@@ -419,6 +441,7 @@ void update_screen(std::vector<std::vector<int>>& screen, std::vector<std::vecto
         {0, 1, 2,1},
         {2, 3, 0,1},
         // Back face
+        
         {5, 4, 7,4},
         {7, 6, 5,4},
         // Top face
@@ -490,9 +513,9 @@ void update_screen(std::vector<std::vector<int>>& screen, std::vector<std::vecto
         for (int i = 0; i < new_points.size() / 8; i++) {
             int loop_index = 0;
             for (std::vector<int> triangle : faces) {
-                std::cout << "p1 " << new_points[8 * i + triangle[0]].x <<" "<< new_points[8 * i + triangle[0]].y <<" "<< new_points[8 * i + triangle[0]].z << std::endl;
-                std::cout << "p2 " << new_points[8 * i + triangle[1]].x << " " << new_points[8 * i + triangle[1]].y << " " << new_points[8 * i + triangle[1]].z << std::endl;
-                std::cout << "p3 " << new_points[8 * i + triangle[2]].x << " " << new_points[8 * i + triangle[2]].y << " " << new_points[8 * i + triangle[2]].z << std::endl;
+                //std::cout << "p1 " << new_points[8 * i + triangle[0]].x <<" "<< new_points[8 * i + triangle[0]].y <<" "<< new_points[8 * i + triangle[0]].z << std::endl;
+                //std::cout << "p2 " << new_points[8 * i + triangle[1]].x << " " << new_points[8 * i + triangle[1]].y << " " << new_points[8 * i + triangle[1]].z << std::endl;
+                //std::cout << "p3 " << new_points[8 * i + triangle[2]].x << " " << new_points[8 * i + triangle[2]].y << " " << new_points[8 * i + triangle[2]].z << std::endl;
                     std::vector<std::vector<float>> rasterized_points = rasterize(new_points[8*i+triangle[0]], new_points[8*i+triangle[1]], new_points[8*i+triangle[2]],0);
                     //std::cout << rasterized_points.size() << std::endl;;
                     int triangle_index = 0;
@@ -515,7 +538,7 @@ void update_screen(std::vector<std::vector<int>>& screen, std::vector<std::vecto
         }
     }
     
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(000));
 }
 
 void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& pz) {
