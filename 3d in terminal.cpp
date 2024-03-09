@@ -35,7 +35,7 @@ const int characters_per_row = 156;
 const int number_of_columns = 38;
 
 std::vector<char> characters = {
-        'W', '@', 'M', '#', 'X', 'A', 'B', '8', '&', '%', '+', '=', 'i', 'l', '1'
+        '.', '-', ':', '_', ',', '!', 'r', 'c', 'z', 's', 'L', 'T', 'v', ')', 'J', '7', '(', 'F', 'i', '{', 'C', '}', 'f', 'I', '3', '1', 't', 'l', 'u', '[', 'n', 'e', 'o', 'Z', '5', 'Y', 'x', 'j', 'y', 'a', ']', '2', 'E', 'S', 'w', 'q', 'k', 'P', '6', 'h', '9', 'd', '4', 'V', 'p', 'O', 'G', 'b', 'U', 'A', 'K', 'X', 'H', 'm', '8', 'R', 'D', '#', '$', 'B', 'g', '0', 'M', 'N', 'W', 'Q', '@'
 };
 
 std::vector<std::vector<float>> points = {
@@ -50,7 +50,7 @@ void prepare_points(std::vector<std::vector<float>>& points) {
     std::uniform_real_distribution<float> dist(-30, 30);
 
     // Generate and print 3 random floating-point numbers (float)
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 1; ++i) {
         float num1 = dist(gen);
         float num2 = dist(gen);
         float num3 = dist(gen);
@@ -123,7 +123,7 @@ void draw_screen(const std::vector<std::vector<int>>& screen) {
         }
         else {
             //std::cout << "o" << std::endl;
-            buffer += "_"; // Append each number to the buffer
+            buffer += " "; // Append each number to the buffer
            // std::cout << "i" << std::endl;
         }
     }
@@ -144,10 +144,10 @@ float distanceToPlane(Point3 point, float angleX, float angleY) {
     float dotProduct = point.x * vx + point.y * vy + point.z * vz;
 
     // Compute the magnitude of the camera's viewing direction vector
-    float magnitude = std::sqrt(vx * vx + vy * vy + vz * vz);
+    float magnitude = (vx * vx + vy * vy + vz * vz);
 
     // Compute the signed distance between the point and the camera plane
-    float distance = std::abs(dotProduct) / magnitude;
+    float distance = (dotProduct) / magnitude;
 
     return distance;
 }
@@ -159,12 +159,12 @@ bool isPointInFrontOfCamera(float angleX, float angleY, Point3 point) {
     float vz = cos(angleY) * cos(angleX);
 
     // Compute dot product
-    float dotProduct = point.x * vx + point.y * vy + point.z * vz;
+    //float dotProduct = point.x * vx + point.y * vy + point.z * vz;
 
     float d = distanceToPlane(point, angleX, angleY);
 
     // If dot product is positive, point is in front of camera
-    return dotProduct >= 0 && d>0.1;
+    return d>0.01;
 }
 
 std::tuple<Point2, Point2> calculateTriangleBoundingBox(const Point2& a, const Point2& b, const Point2& c) {
