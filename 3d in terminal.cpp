@@ -44,14 +44,14 @@ int unique_blocks = 1;
 //for 12 (156,40)
 //keep the numbers even
 const int characters_per_row = 156;
-const int number_of_columns = 40;
+const int number_of_columns = 32;
 
 std::vector<char> characters = {
         '.', '-', ':', '_', ',', '!', 'r', 'c', 'z', 's', 'L', 'T', 'v', ')', 'J', '7', '(', 'F', 'i', '{', 'C', '}', 'f', 'I', '3', '1', 't', 'l', 'u', '[', 'n', 'e', 'o', 'Z', '5', 'Y', 'x', 'j', 'y', 'a', ']', '2', 'E', 'S', 'w', 'q', 'k', 'P', '6', 'h', '9', 'd', '4', 'V', 'p', 'O', 'G', 'b', 'U', 'A', 'K', 'X', 'H', 'm', '8', 'R', 'D', '#', '$', 'B', 'g', '0', 'M', 'N', 'W', 'Q', '@'
 };
 
 std::vector<std::vector<int>> points = {
-    //{0,-1,0,1,0,1}
+    //{1,0,0,2,1,1}
 };
 
 void prepare_points(std::vector<std::vector<int>>& points) {
@@ -59,13 +59,14 @@ void prepare_points(std::vector<std::vector<int>>& points) {
     std::mt19937 gen(rd());
 
     // Define the range [0.0f, 1.0f) for the distribution (float)
-    std::uniform_int_distribution<int> dist(-33, 33);
+    std::uniform_int_distribution<int> dist(-100, 100);
 
     // Generate and print 3 random floating-point numbers (float)
     for (int i = 0; i < 1000; ++i) {
         int num1 = (dist(gen));
         int num2 = (dist(gen));
         int num3 = (dist(gen));
+
 
         points.push_back({ num1,num2,num3,num1+1,num2+1,num3+1 });
     }
@@ -611,7 +612,7 @@ void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n
             float bx = block[0];
             float by = block[1];
             float bz = block[2];
-            //std::cout <<"bco "<<  bx << " " <<  by << " " <<  bz << std::endl;
+            std::cout <<"bco "<<  bx << " " <<  by << " " <<  bz << std::endl;
 
             // Check for collision with each side of the player's bounding box
             if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
@@ -634,17 +635,17 @@ void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n
 }
 
 void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& pz, float delta_time, std::vector<std::vector<int>> blocks) {
-    float n_px=0;
-    float n_py=0;
-    float n_pz=0;
+    float n_px = 0;
+    float n_py = 0;
+    float n_pz = 0;
     if (GetAsyncKeyState(VK_UP) & 0x8000) {
-        y_rotation += 1*delta_time;
+        y_rotation += 1 * delta_time;
     }
     if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
-         y_rotation -= 1*delta_time;
+        y_rotation -= 1 * delta_time;
     }
     if (GetAsyncKeyState(VK_LEFT) & 0x8000) {
-        x_rotation -= 1*delta_time;
+        x_rotation -= 1 * delta_time;
     }
     if (GetAsyncKeyState(VK_RIGHT) & 0x8000) {
         x_rotation += 1 * delta_time;
@@ -701,21 +702,25 @@ std::vector<std::vector<uint64_t>> blocks_to_chuncks(std::vector<std::vector<int
         int block_chunk_y = (16 + block[1] % 16) % 16;
         int block_chunk_z = (16 + block[2] % 16) % 16;
         uint64_t chunk_block_index = block_chunk_y + 16 * block_chunk_z;
-        for (int i = 0; i < 3; i++) {
-            if (block[i] < 0) {
-                block[i] -= 16;
-            }
-        }
-        
+
+
         int chunk_x = 8 + block[0] / 16;
         int chunk_y = 8 + block[1] / 16;
         int chunk_z = 8 + block[2] / 16;
-        
+        if (block[0] < 0){
+            chunk_x--;
+        }
+        if (block[1] < 0) {
+            chunk_y--;
+        }
+        if (block[2] < 0) {
+            chunk_z--;
+        }
         //std::cout << "making chunk info:" << chunk_x << " " << chunk_y << " " << chunk_z << std::endl;
-        //std::cout << "bit " << (static_cast<uint64_t>(block[3]) << (4 * block_chunk_x)) << std::endl;
+        //std::cout << "bit " <<( block_chunk_x) << std::endl;
         chunks[256 * chunk_z + 16 * chunk_y + chunk_x][chunk_block_index] |= (static_cast<uint64_t>(block[3]) << (4 * block_chunk_x));
     }
-    //Sleep(3000);
+    //Sleep(6000);
     return chunks;
 }
 
@@ -733,26 +738,25 @@ int func_for_blo_neigh_chunk(int n) {
 
 std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::vector<uint64_t>> chunks, float px, float py, float pz) {
     std::vector<std::vector<int>> blocks;
-    int cx = 8 + static_cast<int>(px) / 16;
-    int cy = 8 + static_cast<int>(py) / 16;
-    int cz = 8 + static_cast<int>(pz) / 16;
-    int n_px = (16 + (static_cast<int>(px) % 16)) % 16;
-    int n_py = (16 + (static_cast<int>(py) % 16)) % 16;
-    int n_pz = (16 + (static_cast<int>(pz) % 16)) % 16;
-
-    if (px <= -1) {
-        cx--;
+    if (px < 0) {
+        //px++;
     }
-    if (py <= -1) {
-        cy--;
+    if (py < 0) {
+        //py++;
     }
-    if (pz <= -1) {
-        cz--;
+    if (pz < 0) {
+        //pz++;
     }
-    //std::cout <<"np_co" << 16 * (cx - 8) + n_px << " " << (cy - 8) * 16 + n_py << " " << (cz - 8) * 16 + n_pz << std::endl;
-    //std::cout <<"p co:" << px << " " << py << " " << pz << std::endl;
-    //std::cout << n_px << " " << n_py << " " << n_pz << std::endl;
-    //std::cout << cx << " " << cy << " " << cz << std::endl;
+    int cx = static_cast<int>(px + 8 * 16) / 16;
+    int cy = static_cast<int>(py + 8 * 16) / 16;
+    int cz = static_cast<int>(pz + 8 * 16) / 16;
+    int n_px = (16 + (static_cast<int>(floor(px)) % 16)) % 16;
+    int n_py = (16 + (static_cast<int>(floor(py)) % 16)) % 16;
+    int n_pz = (16 + (static_cast<int>(floor(pz)) % 16)) % 16;
+    std::cout <<"np_co" << 16 * (cx - 8) + n_px << " " << (cy - 8) * 16 + n_py << " " << (cz - 8) * 16 + n_pz << std::endl;
+    std::cout <<"p co:" << px << " " << py << " " << pz << std::endl;
+    std::cout << "n_p" << n_px << " " << n_py << " " << n_pz << std::endl;
+    //std::cout << "c " << cx << " " << cy << " " << cz << std::endl;
     //c values might have same mistake that was when loading chunks "c negative still results to positive"
     int x = 0;
     int y = 0;
@@ -806,11 +810,17 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::ve
                         if (((chunks[(cx+lx)+16 * (cy+ly)+256 * (cz+lz)][i] >> 4 * j) & (0b1111)) != 0) {
                             //std::cout << "l:" << lx << " " << ly << " " << lz << std::endl;
                             //std::cout << "j " << j << std::endl;
+                            //std::cout<<"lx:" <<lx<<std::endl;
                             //std::cout << i << " " << j << std::endl;
                             //std::cout <<"chunk " << cx + j << " " << cy + i % 16 << " " << cz + i / 16 << std::endl;
                             //std::cout <<"chunk_data: bx "<< (cx + lx-8)*16+j << " by " << (cy-8 + ly)*16+i%16<<" ny "<< ly << " bz " << (cz - 8 + lz) * 16 + i / 16 << " " << std::endl;
                             //std::cout <<"said box co:" << 16 * (cx - 8 + lx) + j << " " << (cy + ly - 8) * 16 + i % 16 << " " << (cz + lz - 8) * 16 + i / 16 << std::endl;
-                            blocks.push_back({ 16*(cx-8+lx) + j,(cy+ly-8)*16 + i % 16,(cz+lz-8)*16 + i / 16 });
+                            if (px >= 0 || j!=0){
+                                blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                            }
+                            else {
+                                blocks.push_back({ 16 * (cx - 8 + lx) + 16-j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                            }
                         }
                     }
                 }
