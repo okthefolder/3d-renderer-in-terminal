@@ -45,13 +45,14 @@ int unique_blocks = 1;
 //keep the numbers even
 const int characters_per_row = 156;
 const int number_of_columns = 32;
+float dy = 0;
 
 std::vector<char> characters = {
         '.', '-', ':', '_', ',', '!', 'r', 'c', 'z', 's', 'L', 'T', 'v', ')', 'J', '7', '(', 'F', 'i', '{', 'C', '}', 'f', 'I', '3', '1', 't', 'l', 'u', '[', 'n', 'e', 'o', 'Z', '5', 'Y', 'x', 'j', 'y', 'a', ']', '2', 'E', 'S', 'w', 'q', 'k', 'P', '6', 'h', '9', 'd', '4', 'V', 'p', 'O', 'G', 'b', 'U', 'A', 'K', 'X', 'H', 'm', '8', 'R', 'D', '#', '$', 'B', 'g', '0', 'M', 'N', 'W', 'Q', '@'
 };
 
 std::vector<std::vector<int>> points = {
-    //{1,0,0,2,1,1}
+    {0,-2,0,1,-1,1}
 };
 
 void prepare_points(std::vector<std::vector<int>>& points) {
@@ -318,10 +319,6 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
     order_points(a, b, c);
     std::swap(c, a);
     if (max(abs(a.x), abs(b.x), abs(c.x)) >     characters_per_row / 2 || (max(abs(a.y), abs(b.y), abs(c.y)) > number_of_columns / 2)) {
-        //std::cout << "gg" << std::endl;
-        //std::cout << a.x << " a& " << a.y << std::endl;
-        //std::cout << b.x << " b& " << b.y << std::endl;
-        //std::cout << c.x << " c& " << c.y << std::endl;
             std::vector<Point2> a_b_intersection=intersection(a, b);
             std::vector<Point2> a_c_intersection = intersection(a, c);
             std::vector<Point2> b_c_intersection = intersection(b, c);
@@ -355,54 +352,33 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
                 if (intpoint_inside_trigon(screen_vertices[i], a, b, c)) {
                     std::vector<float> plane_coefficients=plane_equation(a, b, c);
                     float p_z = -(plane_coefficients[3]+ plane_coefficients[0]* screen_vertices[i].x + plane_coefficients[1]* screen_vertices[i].y) / plane_coefficients[2];
-                   // std::cout << "SC" << screen_vertices[i].x << " " << screen_vertices[i].y << " " << p_z << std::endl;
                     points_for_triangulation.push_back({screen_vertices[i].x,screen_vertices[i].y, p_z});
                 }
             }
             if (points_for_triangulation.size() != 0) {
                 float centroidx = 0;
                 float centroidy = 0;
-                //std::cout << points_for_triangulation.size() << std::endl;
                 for (Point2 p : points_for_triangulation) {
                     
                     centroidx += p.x;
                     centroidy += p.y;
                 }
                 for (int i = 0; i < points_for_triangulation.size(); i++) {
-                    //std::cout << "(" << points_for_triangulation[i].x << ", " << points_for_triangulation[i].y << ")" << std::endl;
                 }
                 Point2 centroid = { centroidx / (points_for_triangulation.size()),centroidy / (points_for_triangulation.size()) ,1 };
                 std::sort(points_for_triangulation.begin(), points_for_triangulation.end(), [&](const Point2& p1, const Point2& p2) {
                     return compareAngles(p1, p2, centroid);
                     });
-                //std::cout <<"polygon size:" << points_for_triangulation.size() << std::endl;
-                //std::cout << "centre:" << centroid.x << " " << centroid.y << std::endl;
-                for (int i = 0; i < points_for_triangulation.size(); i++) {
-                    //std::cout << "(" << points_for_triangulation[i].x << ", " << points_for_triangulation[i].y << ")" << std::endl;
-                }
                 for (int i = 1; i < points_for_triangulation.size() - 1; i++) {
-                    
-                    //std::cout << points_for_triangulation[0].y << " " << points_for_triangulation[i].y << " " << points_for_triangulation[i + 1].y<< std::endl;
                     for (std::vector<float> tri_rasteri : rasterize(points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1],1)) {
-                        //std::cout << "giroi" << std::endl;
                         rasterized.push_back(tri_rasteri);
                     }
                 }
             }
             else {
-                //for (int i = 0; i < 1000; i++) {
-                //    std::cout << "fjesigojseo" << std::endl;
-                //}
             }
-            //std::cout << rasterized.size() << std::endl;;
             return rasterized;
-            //std::sort(points_for_triangulation.begin(), points_for_triangulation.end(), compareX);
-            
-
-
-
     }
-    //std::cout << a.x << " " << a.y<<" " << b.x << " " << b.y << " " << c.x << " " << c.y << std::endl;
     for (float i = c.y; i > b.y; i--) {
 
         if (b.y - c.y != 0) {
@@ -438,7 +414,6 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
     for (float i = 0; i < x_co_for_lines_1.size(); i++) {
         if (x_co_for_lines_1[i] < x_co_for_lines_2[i]) {
             for (float x = x_co_for_lines_1[i]; x <= x_co_for_lines_2[i]; x++) {
-                //ADD Z COORDINATE
                 if (x_co_for_lines_1[i] != x_co_for_lines_2[i]) {
                     rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) });
                 }
@@ -458,23 +433,12 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
             }
         }
     }
-    //std::cout << rasterized.size() << std::endl;
-    if (test == 1) {
-       // rasterized.push_back({ 0,0 });
-    }
     return rasterized;
 }
 
 void update_screen(std::vector<std::vector<int>>& screen, std::vector<std::vector<int>> points, float x_rotation, float y_rotation, float px, float py, float pz) {
-    // Simulate some changes to the screen content
     std::vector<Point2> new_points;
-    //for (int i=0; i < points.size(); i++) {
-    //    new_points.push_back({0,0,0});
-    //}
     new_points.resize(points.size(), { 0, 0, 0 });
-    //for (int i = 0; i < characters_per_row*number_of_columns;i++) {
-    //    screen[i] = { 0,1000000000 };
-    //}
     screen.assign(characters_per_row * number_of_columns, { 0, 1000000000 });
     
 
@@ -529,109 +493,83 @@ void update_screen(std::vector<std::vector<int>>& screen, std::vector<std::vecto
                 if (static_cast<int>(100 * p_z_co1) != 0) {
                     new_points[i * 8 + triangle[0]] = { (number_of_columns * p_x_co1 / p_z_co1),(number_of_columns * p_y_co1 / p_z_co1), (number_of_columns * p_z_co1) };
                 }
-                //else {
-                    //new_points[i * 8 + triangle[0]] = { (100 * p_x_co1),static_cast<int>(100 * p_y_co1), static_cast<int>(100 * p_z_co1) };
-                //}
                 if (static_cast<int>(100 * p_z_co2) != 0) {
                     new_points[i * 8 + triangle[1]] = { (number_of_columns * p_x_co2 / p_z_co2),(number_of_columns * p_y_co2 / p_z_co2), (number_of_columns * p_z_co2) };
                 }
-                //else {
-                    //new_points[i * 8 + triangle[0]] = { static_cast<int>(100 * p_x_co2),static_cast<int>(100 * p_y_co2), static_cast<int>(100 * p_z_co2) };
-                //}
                 if (static_cast<int>(100 * p_z_co3) != 0) {
                     new_points[i * 8 + triangle[2]] = { (number_of_columns * p_x_co3 / p_z_co3),(number_of_columns * p_y_co3 / p_z_co3), (number_of_columns * p_z_co3) };
                 }
-                //else {
-                    //new_points[i * 8 + triangle[0]] = { static_cast<int>(100 * p_x_co3),static_cast<int>(100 * p_y_co3), static_cast<int>(100 * p_z_co3) };
-                //}
-                //new_points[i * 8 + triangle[0]] = { static_cast<int>(100 * p_x_co1 / p_z_co1),static_cast<int>(100 * p_y_co1 / p_z_co1), static_cast<int>(100 * p_z_co1) };
-                //new_points[i * 8 + triangle[1]] = { static_cast<int>(100 * p_x_co2/p_z_co2),static_cast<int>(100 * p_y_co2 / p_z_co2), static_cast<int>(100* p_z_co2) };
-                //new_points[i * 8 + triangle[2]] = { static_cast<int>(100 * p_x_co3 / p_z_co3),static_cast<int>(100 * p_y_co3 / p_z_co3), static_cast<int>(100* p_z_co3) };
             }
 
         }
     }
-    //std::cout << new_points.size()<<" points" << std::endl;
-    //for (Point2 p : new_points) {
-    //    if (p.x == 0 && p.y == 0) { std::cout << "FUCK" << std::endl; }
-    //}
-    if (new_points.size() != 0) {
-        for (int i = 0; i < new_points.size() / 8; i++) {
-            int loop_index = 0;
-            for (std::vector<int> triangle : faces) {
-                float p_x_co1 = points[i * 8 + triangle[0]][0] - px;
-                float p_y_co1 = points[i * 8 + triangle[0]][1] - py;
-                float p_z_co1 = points[i * 8 + triangle[0]][2] - pz;
+if (new_points.size() != 0) {
+    for (int i = 0; i < new_points.size() / 8; i++) {
+        int loop_index = 0;
+        for (std::vector<int> triangle : faces) {
+            float p_x_co1 = points[i * 8 + triangle[0]][0] - px;
+            float p_y_co1 = points[i * 8 + triangle[0]][1] - py;
+            float p_z_co1 = points[i * 8 + triangle[0]][2] - pz;
 
-                float p_x_co2 = points[i * 8 + triangle[1]][0] - px;
-                float p_y_co2 = points[i * 8 + triangle[1]][1] - py;
-                float p_z_co2 = points[i * 8 + triangle[1]][2] - pz;
+            float p_x_co2 = points[i * 8 + triangle[1]][0] - px;
+            float p_y_co2 = points[i * 8 + triangle[1]][1] - py;
+            float p_z_co2 = points[i * 8 + triangle[1]][2] - pz;
 
-                float p_x_co3 = points[i * 8 + triangle[2]][0] - px;
-                float p_y_co3 = points[i * 8 + triangle[2]][1] - py;
-                float p_z_co3 = points[i * 8 + triangle[2]][2] - pz;
+            float p_x_co3 = points[i * 8 + triangle[2]][0] - px;
+            float p_y_co3 = points[i * 8 + triangle[2]][1] - py;
+            float p_z_co3 = points[i * 8 + triangle[2]][2] - pz;
 
-                Point3 point1 = { p_x_co1, p_y_co1, p_z_co1 };
-                Point3 point2 = { p_x_co2, p_y_co2, p_z_co2 };
-                Point3 point3 = { p_x_co3, p_y_co3, p_z_co3 };
-                if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) && isPointInFrontOfCamera(x_rotation, y_rotation, point2) && isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
-                    std::vector<std::vector<float>> rasterized_points = rasterize(new_points[8 * i + triangle[0]], new_points[8 * i + triangle[1]], new_points[8 * i + triangle[2]], 0);
-                    //std::cout << rasterized_points.size() << std::endl;;
-                    int triangle_index = 0;
-                    //std::cout << rasterized_points.size() << " ";
-                    for (const std::vector<float>& p : rasterized_points) {
+            Point3 point1 = { p_x_co1, p_y_co1, p_z_co1 };
+            Point3 point2 = { p_x_co2, p_y_co2, p_z_co2 };
+            Point3 point3 = { p_x_co3, p_y_co3, p_z_co3 };
+            if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) && isPointInFrontOfCamera(x_rotation, y_rotation, point2) && isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
+                std::vector<std::vector<float>> rasterized_points = rasterize(new_points[8 * i + triangle[0]], new_points[8 * i + triangle[1]], new_points[8 * i + triangle[2]], 0);
+                //std::cout << rasterized_points.size() << std::endl;;
+                int triangle_index = 0;
+                //std::cout << rasterized_points.size() << " ";
+                for (const std::vector<float>& p : rasterized_points) {
 
-                        int p_x_co = p[0];
-                        int p_y_co = p[1];
-                        int p_z_co = p[2];
-                        //std::cout << p_x_co << " " << p_y_co << std::endl;
-                        if (p_z_co != 0 && abs(1 * p_y_co) < number_of_columns / 2 && abs(1 * p_x_co) < characters_per_row / 2) {
-                            if (p_z_co > 0 && p_z_co < screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co][1]) {
-                                //std::cout << "giuhwrguiw" << std::endl;
-                                screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co] = { triangle[3],p_z_co };
-                            }
+                    int p_x_co = p[0];
+                    int p_y_co = p[1];
+                    int p_z_co = p[2];
+                    //std::cout << p_x_co << " " << p_y_co << std::endl;
+                    if (p_z_co != 0 && abs(1 * p_y_co) < number_of_columns / 2 && abs(1 * p_x_co) < characters_per_row / 2) {
+                        if (p_z_co > 0 && p_z_co < screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co][1]) {
+                            //std::cout << "giuhwrguiw" << std::endl;
+                            screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co] = { triangle[3],p_z_co };
                         }
                     }
-                    loop_index++;
                 }
+                loop_index++;
             }
         }
     }
-    
-    //std::this_thread::sleep_for(std::chrono::milliseconds(000));
+}
+
+//std::this_thread::sleep_for(std::chrono::milliseconds(000));
 }
 
 void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n_pz, std::vector<std::vector<int>> blocks) {
-    //for (std::vector<int> block : blocks) {
-        BoundingBox newPlayer = { px + n_px, py + n_py, pz + n_pz, 0.5 };
-
-        // Iterate through each block
-        //std::cout << "size " << blocks.size() << std::endl;
-        for (std::vector<int> block : blocks) {
-            // Extract block coordinates
-            float bx = block[0];
-            float by = block[1];
-            float bz = block[2];
-            std::cout <<"bco "<<  bx << " " <<  by << " " <<  bz << std::endl;
-
-            // Check for collision with each side of the player's bounding box
-            if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
-                (newPlayer.py - newPlayer.size < by + 1 && newPlayer.py + newPlayer.size > by) &&
-                (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
-                // Handle collision - adjust the new player position
-                // Example: Stop player's movement along the colliding axis
-                if (newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) {
-                    n_px = 0;  // Reset the new x-position to zero
-                }
-                if (newPlayer.py - newPlayer.size < by + 1 && newPlayer.py + newPlayer.size > by) {
-                    n_py = 0;  // Reset the new y-position to zero
-                }
-                if (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz) {
-                    n_pz = 0;  // Reset the new z-position to zero
-                }
+    BoundingBox newPlayer = { px + n_px, py + n_py, pz + n_pz, 0.5 };
+    for (std::vector<int> block : blocks) {
+        float bx = block[0];
+        float by = block[1];
+        float bz = block[2];
+        //std::cout << "bco " << bx << " " << by << " " << bz << std::endl;
+        if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
+            (newPlayer.py - newPlayer.size < by + 1 && newPlayer.py + newPlayer.size > by) &&
+            (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
+            if (newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) {
+                n_px = 0;
+            }
+            if (newPlayer.py - newPlayer.size < by + 1 && newPlayer.py + newPlayer.size > by) {
+                n_py = 0;
+            }
+            if (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz) {
+                n_pz = 0;
             }
         }
-    //}
+    }
 }
 
 void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& pz, float delta_time, std::vector<std::vector<int>> blocks) {
@@ -651,13 +589,24 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
         x_rotation += 1 * delta_time;
     }
 
-    if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
-        n_py += 5 * delta_time;
+    float ty = -1;
+    float txz = 0;
+    collisions(px, py, pz, txz, ty, txz, blocks);
+    if (ty == 0) {
+        dy = 0;
+    }
+    if (GetAsyncKeyState(VK_SPACE) & 0x8000 && ty == 0) {
+        dy = 5;
     }
     if (GetAsyncKeyState('C') & 0x8000) {
         n_py -= 5 * delta_time;
     }
 
+    if (dy > -5) {
+        dy-=1*delta_time;
+    }
+    n_py += dy * delta_time;
+    //std::cout << "ty" << ty << std::endl;
     if (GetAsyncKeyState('W') & 0x8000) { // Move forward
         n_px += -5 * std::sin(-x_rotation) * delta_time;
         n_pz -= -5 * std::cos(x_rotation) * delta_time;
@@ -678,7 +627,6 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
     px += n_px;
     py += n_py;
     pz += n_pz;
-    //Sleep(100);
 }
 
 int hash(int x, int y, int z) {
@@ -695,15 +643,10 @@ std::vector<std::vector<uint64_t>> blocks_to_chuncks(std::vector<std::vector<int
     std::vector<std::vector<uint64_t>> chunks(16 * 16 * 16, std::vector<uint64_t>(256));
     for (std::vector<int> block : blocks) {
         block = { block[0],block[1],block[2],1 };
-        //std::cout << "block info:" << block[0] << " " << block[1] << " " << block[2] << std::endl;
         int block_chunk_x = (16 + block[0] % 16) % 16;
-        //std::cout << "bcx" << block_chunk_x << std::endl;
-        //std::cout << "block info:" << block[0] << " " << block[1] << " " << block[2] << std::endl;
         int block_chunk_y = (16 + block[1] % 16) % 16;
         int block_chunk_z = (16 + block[2] % 16) % 16;
         uint64_t chunk_block_index = block_chunk_y + 16 * block_chunk_z;
-
-
         int chunk_x = 8 + block[0] / 16;
         int chunk_y = 8 + block[1] / 16;
         int chunk_z = 8 + block[2] / 16;
@@ -716,11 +659,8 @@ std::vector<std::vector<uint64_t>> blocks_to_chuncks(std::vector<std::vector<int
         if (block[2] < 0) {
             chunk_z--;
         }
-        //std::cout << "making chunk info:" << chunk_x << " " << chunk_y << " " << chunk_z << std::endl;
-        //std::cout << "bit " <<( block_chunk_x) << std::endl;
         chunks[256 * chunk_z + 16 * chunk_y + chunk_x][chunk_block_index] |= (static_cast<uint64_t>(block[3]) << (4 * block_chunk_x));
     }
-    //Sleep(6000);
     return chunks;
 }
 
@@ -738,26 +678,15 @@ int func_for_blo_neigh_chunk(int n) {
 
 std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::vector<uint64_t>> chunks, float px, float py, float pz) {
     std::vector<std::vector<int>> blocks;
-    if (px < 0) {
-        //px++;
-    }
-    if (py < 0) {
-        //py++;
-    }
-    if (pz < 0) {
-        //pz++;
-    }
     int cx = static_cast<int>(px + 8 * 16) / 16;
     int cy = static_cast<int>(py + 8 * 16) / 16;
     int cz = static_cast<int>(pz + 8 * 16) / 16;
     int n_px = (16 + (static_cast<int>(floor(px)) % 16)) % 16;
     int n_py = (16 + (static_cast<int>(floor(py)) % 16)) % 16;
     int n_pz = (16 + (static_cast<int>(floor(pz)) % 16)) % 16;
-    std::cout <<"np_co" << 16 * (cx - 8) + n_px << " " << (cy - 8) * 16 + n_py << " " << (cz - 8) * 16 + n_pz << std::endl;
-    std::cout <<"p co:" << px << " " << py << " " << pz << std::endl;
-    std::cout << "n_p" << n_px << " " << n_py << " " << n_pz << std::endl;
-    //std::cout << "c " << cx << " " << cy << " " << cz << std::endl;
-    //c values might have same mistake that was when loading chunks "c negative still results to positive"
+    //std::cout <<"np_co" << 16 * (cx - 8) + n_px << " " << (cy - 8) * 16 + n_py << " " << (cz - 8) * 16 + n_pz << std::endl;
+    //std::cout <<"p co:" << px << " " << py << " " << pz << std::endl;
+    //std::cout << "n_p" << n_px << " " << n_py << " " << n_pz << std::endl;
     int x = 0;
     int y = 0;
     int z = 0;
@@ -808,13 +737,6 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::ve
                 for (int i = 0; i < 256; i++) {
                     for (int j = 0; j < 16; j++) {
                         if (((chunks[(cx+lx)+16 * (cy+ly)+256 * (cz+lz)][i] >> 4 * j) & (0b1111)) != 0) {
-                            //std::cout << "l:" << lx << " " << ly << " " << lz << std::endl;
-                            //std::cout << "j " << j << std::endl;
-                            //std::cout<<"lx:" <<lx<<std::endl;
-                            //std::cout << i << " " << j << std::endl;
-                            //std::cout <<"chunk " << cx + j << " " << cy + i % 16 << " " << cz + i / 16 << std::endl;
-                            //std::cout <<"chunk_data: bx "<< (cx + lx-8)*16+j << " by " << (cy-8 + ly)*16+i%16<<" ny "<< ly << " bz " << (cz - 8 + lz) * 16 + i / 16 << " " << std::endl;
-                            //std::cout <<"said box co:" << 16 * (cx - 8 + lx) + j << " " << (cy + ly - 8) * 16 + i % 16 << " " << (cz + lz - 8) * 16 + i / 16 << std::endl;
                             if (px >= 0 || j!=0){
                                 blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
                             }
@@ -836,23 +758,16 @@ int main() {
     std::vector<std::vector<int>> screen(characters_per_row * number_of_columns);
     std::vector<std::vector<uint64_t>> chunks = blocks_to_chuncks(points, 16);
     cuboid_to_vertices(points);
-    
-    // Seed random number generator
     srand(static_cast<unsigned int>(time(nullptr)));
-
     while (true) {
         auto current_time = std::chrono::steady_clock::now();
         std::chrono::duration<float> delta_seconds = current_time - last_time;
         last_time = current_time;
-
         float delta_time = delta_seconds.count();
         std::cout << delta_time << std::endl;
-        //blocks_from_neighboring_chunks();
         controls(x_rotation, y_rotation,px,py,pz, delta_time, blocks_from_neighboring_chunks(chunks,px,py,pz));
         update_screen(screen, points, x_rotation, y_rotation, px, py, pz); // Update screen content
-        //std::cout << "update" << std::endl;
         draw_screen(screen);   // Draw updated screen
-        //std::cout << "draw" <<std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     return 0;
