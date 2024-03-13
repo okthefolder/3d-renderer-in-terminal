@@ -63,11 +63,10 @@ void prepare_points(std::vector<std::vector<int>>& points) {
     std::uniform_int_distribution<int> dist(-100, 100);
 
     // Generate and print 3 random floating-point numbers (float)
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10000; ++i) {
         int num1 = (dist(gen));
         int num2 = (dist(gen));
         int num3 = (dist(gen));
-
 
         points.push_back({ num1,num2,num3,num1+1,num2+1,num3+1 });
     }
@@ -555,7 +554,7 @@ void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n
         float bx = block[0];
         float by = block[1];
         float bz = block[2];
-        //std::cout << "bco " << bx << " " << by << " " << bz << std::endl;
+       // std::cout << "bco " << bx << " " << by << " " << bz << std::endl;
         if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
             (newPlayer.py - newPlayer.size < by + 1 && newPlayer.py + newPlayer.size > by) &&
             (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
@@ -576,10 +575,10 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
     float n_px = 0;
     float n_py = 0;
     float n_pz = 0;
-    if (GetAsyncKeyState(VK_UP) & 0x8000) {
+    if (GetAsyncKeyState(VK_UP) & 0x8000 && y_rotation + 1 * delta_time<3.14/2) {
         y_rotation += 1 * delta_time;
     }
-    if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
+    if (GetAsyncKeyState(VK_DOWN) & 0x8000 && y_rotation - 1 * delta_time > -3.14 / 2) {
         y_rotation -= 1 * delta_time;
     }
     if (GetAsyncKeyState(VK_LEFT) & 0x8000) {
@@ -596,32 +595,32 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
         dy = 0;
     }
     if (GetAsyncKeyState(VK_SPACE) & 0x8000 && ty == 0) {
-        dy = 5;
+        dy = 2;
     }
     if (GetAsyncKeyState('C') & 0x8000) {
         n_py -= 5 * delta_time;
     }
 
-    if (dy > -5) {
+    if (dy > -10) {
         dy-=1*delta_time;
     }
     n_py += dy * delta_time;
     //std::cout << "ty" << ty << std::endl;
     if (GetAsyncKeyState('W') & 0x8000) { // Move forward
-        n_px += -5 * std::sin(-x_rotation) * delta_time;
-        n_pz -= -5 * std::cos(x_rotation) * delta_time;
+        n_px += -3 * std::sin(-x_rotation) * delta_time;
+        n_pz -= -3 * std::cos(x_rotation) * delta_time;
     }
     if (GetAsyncKeyState('S') & 0x8000) { // Move backward
-        n_px -= -5 * std::sin(-x_rotation) * delta_time;
-        n_pz += -5 * std::cos(x_rotation) * delta_time;
+        n_px -= -3 * std::sin(-x_rotation) * delta_time;
+        n_pz += -3 * std::cos(x_rotation) * delta_time;
     }
     if (GetAsyncKeyState('A') & 0x8000) { // Turn left
-        n_px += -5 * std::cos(-x_rotation) * delta_time;
-        n_pz -= -5 * std::sin(x_rotation) * delta_time;
+        n_px += -3 * std::cos(-x_rotation) * delta_time;
+        n_pz -= -3 * std::sin(x_rotation) * delta_time;
     }
     if (GetAsyncKeyState('D') & 0x8000) { // Turn right
-        n_px -= -5 * std::cos(-x_rotation) * delta_time;
-        n_pz += -5 * std::sin(x_rotation) * delta_time;
+        n_px -= -3 * std::cos(-x_rotation) * delta_time;
+        n_pz += -3 * std::sin(x_rotation) * delta_time;
     }
     collisions(px, py, pz, n_px, n_py, n_pz, blocks);
     px += n_px;
@@ -685,7 +684,7 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::ve
     int n_py = (16 + (static_cast<int>(floor(py)) % 16)) % 16;
     int n_pz = (16 + (static_cast<int>(floor(pz)) % 16)) % 16;
     //std::cout <<"np_co" << 16 * (cx - 8) + n_px << " " << (cy - 8) * 16 + n_py << " " << (cz - 8) * 16 + n_pz << std::endl;
-    //std::cout <<"p co:" << px << " " << py << " " << pz << std::endl;
+    std::cout <<"p co:" << px << " " << py << " " << pz << std::endl;
     //std::cout << "n_p" << n_px << " " << n_py << " " << n_pz << std::endl;
     int x = 0;
     int y = 0;
@@ -737,11 +736,23 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::ve
                 for (int i = 0; i < 256; i++) {
                     for (int j = 0; j < 16; j++) {
                         if (((chunks[(cx+lx)+16 * (cy+ly)+256 * (cz+lz)][i] >> 4 * j) & (0b1111)) != 0) {
-                            if (px >= 0 || j!=0){
-                                blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                            if (px >= -1 || j!=0){
+                                //blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                                if (pz >= -1 || i/16 != 0) {
+                                    blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                                }
+                                else {
+                                    blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + 16-i / 16 });
+                                }
                             }
                             else {
-                                blocks.push_back({ 16 * (cx - 8 + lx) + 16-j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                                //blocks.push_back({ 16 * (cx - 8 + lx) + 16-j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                                if (pz >= -1 || i / 16 != 0) {
+                                    blocks.push_back({ 16 * (cx - 8 + lx) + 16 - j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                                }
+                                else {
+                                    blocks.push_back({ 16 * (cx - 8 + lx) + 16 - j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + 16-i / 16 });
+                                }
                             }
                         }
                     }
