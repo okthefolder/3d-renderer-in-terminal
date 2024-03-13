@@ -44,7 +44,7 @@ int unique_blocks = 1;
 //for 12 (156,40)
 //keep the numbers even
 const int characters_per_row = 156;
-const int number_of_columns = 32;
+const int number_of_columns = 36;
 float dy = 0;
 
 std::vector<char> characters = {
@@ -55,6 +55,121 @@ std::vector<std::vector<int>> points = {
     {0,-2,0,1,-1,1}
 };
 
+
+float x_rotation = 0;
+float y_rotation = 0;
+float px = 0;
+float py = 100;
+float pz = 0;
+
+uint64_t hashCoordinates(int x, int y) {
+    // Combine the two integers into a single value using bitwise operations
+    uint64_t combinedValue = static_cast<size_t>(x) | (static_cast<size_t>(y) << 16);
+    return combinedValue;
+}
+
+std::vector<float> getDeerministicRandomVector(int x, int y) {
+    // Use a hash function to generate a deterministic seed
+    // You can use any hash function that suits your needs
+    uint64_t seed = hashCoordinates(x, y);
+
+    // Create a random number generator with the deterministic seed
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<> dis(0, 2 * 3.14159); // Uniform distribution from 0 to 2π
+
+    // Generate a random angle
+    float angle = dis(gen);
+
+    // Convert the angle to a 2D unit vector
+    float vx = cos(angle);
+    float vy = sin(angle);
+
+    return { vx, vy };
+}
+
+float dot_product(std::vector<float> v1, std::vector<float> v2) {
+    return v1[0] * v2[0] + v1[1] * v2[1];
+}
+
+float bilinear_interpolation(float v00, float v01, float v10, float v11, float dx, float dy) {
+    // Interpolate along x-axis (lerp)
+    float interpolated_x0 = v00 + dx * (v10 - v00);
+    float interpolated_x1 = v01 + dx * (v11 - v01);
+
+    // Interpolate along y-axis (lerp)
+    return interpolated_x0 + dy * (interpolated_x1 - interpolated_x0);
+}
+
+float perlin_noise_at_point(float fx, float fy, std::vector<std::vector<float>> perlin_noise) {
+    int x0 = floor(fx);
+    int y0 = floor(fy);
+    float dx = fx - x0;
+    float dy = fy - y0;
+
+    // Get noise values at the four corners of the cell
+    float v00 = perlin_noise[x0][y0];
+    float v01 = perlin_noise[x0][y0 + 1];
+    float v10 = perlin_noise[x0 + 1][y0];
+    float v11 = perlin_noise[x0 + 1][y0 + 1];
+
+    // Perform bilinear interpolation
+    return bilinear_interpolation(v00, v01, v10, v11, dx, dy);
+}
+
+std::vector<std::vector<float>> perlin_noise_generation(float fx, float fy) {
+    std::vector<std::vector<std::vector<float>>> random_vectors(16, std::vector<std::vector<float>>(16, std::vector<float>(2)));
+    std::vector<std::vector<float>> non_interpoluated_perlin_noise(16, std::vector<float>(16, 0));
+    for (int x = 0; x < 16; ++x) {
+        for (int y = 0; y < 16; y++) {
+            random_vectors[x][y] = getDeerministicRandomVector(x, y);
+            std::cout << random_vectors[x][y][0] << " " << random_vectors[x][y][1] << "   " << std::endl;
+        }
+        std::cout << " " << std::endl;
+    }
+    std::cout << " " << std::endl;
+    std::cout << " " << std::endl;
+    std::cout << " " << std::endl;
+
+    for (int x = 0; x < 15; ++x) {
+        for (int y = 0; y < 15; y++) {
+            non_interpoluated_perlin_noise[x][y] += dot_product(random_vectors[x][y], { fx,fy });
+        }
+    }
+    for (int x = 0; x < 15; ++x) {
+        for (int y = 0; y < 15; y++) {
+            non_interpoluated_perlin_noise[x][y] += dot_product(random_vectors[x + 1][y], { 1 - fx,fy });
+        }
+    }
+    for (int x = 0; x < 15; ++x) {
+        for (int y = 0; y < 15; y++) {
+            non_interpoluated_perlin_noise[x][y] += dot_product(random_vectors[x][y + 1], { fx,1 - fy });
+        }
+    }
+    for (int x = 0; x < 15; ++x) {
+        for (int y = 0; y < 15; y++) {
+            non_interpoluated_perlin_noise[x][y] += dot_product(random_vectors[x + 1][y + 1], { 1 - fx,1 - fy });
+        }
+    }
+
+    for (int x = 0; x < 16; ++x) {
+        for (int y = 0; y < 16; y++) {
+            non_interpoluated_perlin_noise[x][y] /= 4;
+            std::cout << non_interpoluated_perlin_noise[x][y] << " ";
+        }
+        std::cout << " " << std::endl;
+    }
+
+
+    std::vector<std::vector<float>> perlin_noise(256, std::vector<float>(256, 0));
+    for (int x = 0; x < 256 - 16; x++) {
+        for (int y = 0; y < 256 - 16; y++) {
+            perlin_noise[x][y] = perlin_noise_at_point(16 * static_cast<float>(x) / 256, 16 * static_cast<float>(y) / 256, non_interpoluated_perlin_noise);
+        }
+    }
+    return perlin_noise;
+
+}
+
 void prepare_points(std::vector<std::vector<int>>& points) {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -63,19 +178,20 @@ void prepare_points(std::vector<std::vector<int>>& points) {
     std::uniform_int_distribution<int> dist(-100, 100);
 
     // Generate and print 3 random floating-point numbers (float)
-    for (int i = 0; i < 10000; ++i) {
-        int num1 = (dist(gen));
-        int num2 = (dist(gen));
-        int num3 = (dist(gen));
-
-        points.push_back({ num1,num2,num3,num1+1,num2+1,num3+1 });
+    std::vector<std::vector<float>> perlin_noise = perlin_noise_generation(0.5, 0.5);
+    for (int x = -64; x < 64; ++x) {
+        for (int z = -64; z < 64; ++z) {
+            /*int num1 = (dist(gen));
+            int num2 = (dist(gen));
+            int num3 = (dist(gen));
+            */
+            int num1 = x;
+            int num2 = perlin_noise[128 + x][128 + z] * 20;
+            int num3 = z;
+            points.push_back({ num1,num2,num3,num1 + 1,num2 + 1,num3 + 1 });
+        }
     }
 }
-float x_rotation = 0;
-float y_rotation = 0;
-float px = 0;
-float py = 0;
-float pz = 0;
 
 std::vector<std::vector<int>> make_cuboid(int x1, int y1, int z1, int x2, int y2, int z2) {
     std::vector<std::vector<int>> vertices;
@@ -594,6 +710,7 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
     if (ty == 0) {
         dy = 0;
     }
+    std::cout << "ty" << ty << std::endl;
     if (GetAsyncKeyState(VK_SPACE) & 0x8000 && ty == 0) {
         dy = 2;
     }
