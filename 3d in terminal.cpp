@@ -52,14 +52,15 @@ std::vector<char> characters = {
 };
 
 std::vector<std::vector<int>> points = {
-    {0,-2,0,1,-1,1}
+    {0,0,0,1,1,1},
+    {1,0,0,2,1,1}
 };
 
 
 float x_rotation = 0;
 float y_rotation = 0;
 float px = 0;
-float py = 100;
+float py = 10;
 float pz = 0;
 
 uint64_t hashCoordinates(int x, int y) {
@@ -186,9 +187,12 @@ void prepare_points(std::vector<std::vector<int>>& points) {
             int num3 = (dist(gen));
             */
             int num1 = x;
+            //int num2 = 0;
             int num2 = perlin_noise[128 + x][128 + z] * 20;
             int num3 = z;
-            points.push_back({ num1,num2,num3,num1 + 1,num2 + 1,num3 + 1 });
+            for (int i = 0; i < 10; i++) {
+                points.push_back({ num1,num2+i,num3,num1 + 1,num2+i + 1,num3 + 1 });
+            }
         }
     }
 }
@@ -247,6 +251,7 @@ void draw_screen(const std::vector<std::vector<int>>& screen) {
         //std::cout << i << std::endl;
         if (screen[i][0] != 0) {
           //  std::cout << "k" << std::endl;
+           // std::cout << "scrreen" << screen[i][0] << std::endl;
             buffer += characters[screen[i][0]]; // Append each number to the buffer
             //std::cout << "j" << std::endl;
         }
@@ -551,7 +556,189 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
     return rasterized;
 }
 
-void update_screen(std::vector<std::vector<int>>& screen, std::vector<std::vector<int>> points, float x_rotation, float y_rotation, float px, float py, float pz) {
+std::vector<std::vector<int>> blocks_from_chunk(const std::vector<std::vector<uint64_t>>& chunks, int cx, int cy, int cz) {
+    std::vector<std::vector<int>> blocks;
+    blocks.reserve(256 * 16); // Reserve memory for efficiency
+    for (int i = 0; i < 256; i++) {
+        for (int j = 0; j < 16; j++) {
+            if (((chunks[(cx)+16 * (cy)+256 * (cz)][i] >> 4 * j) & (0b1111)) != 0) {
+                int block_x, block_y, block_z;
+                if (px >= -1 || j != 0) {
+                    block_x = 16 * (cx - 8) + j;
+                }
+                else {
+                    block_x = 16 * (cx - 8) + 16 - j;
+                }
+                if (pz >= -1 || i / 16 != 0) {
+                    block_z = 16 * (cz - 8) + i / 16;
+                }
+                else {
+                    block_z = 16 * (cz - 8) + 16 - i / 16;
+                }
+                block_y = 16 * (cy - 8) + i % 16;
+                blocks.emplace_back(std::vector<int>{block_x, block_y, block_z});
+            }
+        }
+    }
+    return blocks;
+}
+
+bool sort_on_midpoint(const std::vector<int>& a, const std::vector<int>& b) {
+    std::vector<int> mid_a = { a[0] + a[3] + a[6], a[1] + a[4] + a[7], a[2] + a[5] + a[8] };
+    std::vector<int> mid_b = { b[0] + b[3] + b[6], b[1] + b[4] + b[7], b[2] + b[5] + b[8] };
+
+    // Compare midpoints
+    if (mid_a[0] != mid_b[0]) return mid_a[0] < mid_b[0]; // First compare mid_a[0] and mid_b[0]
+    if (mid_a[1] != mid_b[1]) return mid_a[1] < mid_b[1]; // If equal, compare mid_a[1] and mid_b[1]
+    return mid_a[2] <= mid_b[2]; // If still equal, compare mid_a[2] and mid_b[2]
+}
+
+bool compare_equality_on_midpoint(const std::vector<int>& a, const std::vector<int>& b) {
+    std::vector<int> mid_a = { a[0] + a[3] + a[6], a[1] + a[4] + a[7], a[2] + a[5] + a[8] };
+    std::vector<int> mid_b = { b[0] + b[3] + b[6], b[1] + b[4] + b[7], b[2] + b[5] + b[8] };
+
+    // Convert midpoints to 64-bit integers for comparison
+    uint64_t a_compressed = (static_cast<uint64_t>(mid_a[0]) << 32) | (static_cast<uint64_t>(mid_a[1]) << 16) | static_cast<uint64_t>(mid_a[2]);
+    uint64_t b_compressed = (static_cast<uint64_t>(mid_b[0]) << 32) | (static_cast<uint64_t>(mid_b[1]) << 16) | static_cast<uint64_t>(mid_b[2]);
+
+    // Sort in ascending order
+   // std::cout << a_compressed << " "<<b_compressed << std::endl;
+    return ((mid_a[0] == mid_b[0]) && (mid_a[1] == mid_b[1]) && (mid_a[2] == mid_b[2]));
+}
+
+std::vector<std::vector<int>> chunk_to_triangles(const std::vector<std::vector<uint64_t>>& chunk, int cx,int cy,int cz) {
+    std::vector<std::vector<int>> blocks=blocks_from_chunk(chunk, cx, cy, cz);
+    //std::cout << "tytyt" << std::endl;
+    std::vector<std::vector<int>> triangles;
+    std::vector<std::vector<int>> faces = {
+        // Front face
+        {0, 2, 1,1},
+        {0, 3, 2,1},
+        // Back face
+
+        {0, 7, 4,4},
+        {0, 3, 7,4},
+        // Top face
+        {0, 1, 5,7},
+        {0, 4, 5,7},
+        // Bottom face
+        {4, 6, 5,9},
+        {4, 7, 6,9},
+        // Left face
+        {1, 6, 5,12},
+        {1, 2, 6,12},
+        // Right face
+        {3, 2, 6,14},
+        {3, 7, 6,14}
+    };
+    for (std::vector<int> block : blocks) {
+        std::vector<std::vector<int>> vertices = make_cuboid(block[0], block[1], block[2], block[0] + 1, block[1] + 1, block[2] + 1);
+        for (std::vector<int> triangle : faces) {
+            //std::cout << vertices[triangle[0]][0] + vertices[triangle[1]][0] + vertices[triangle[2]][0] << " " << vertices[triangle[0]][1] + vertices[triangle[1]][1] + vertices[triangle[2]][1] << " " << vertices[triangle[0]][2] + vertices[triangle[1]][2] + vertices[triangle[2]][2] << std::endl;
+            triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+        }
+       // std::cout << " " << std::endl;
+
+    }
+   //std::cout << "htrhi" << std::endl;
+    std::sort(triangles.begin(), triangles.end(), [](const std::vector<int>& a, const std::vector<int>& b) {
+        return sort_on_midpoint(a,b);
+    });
+    //for (std::vector<int> t : triangles) {
+       // std::cout << t[0] + t[3] + t[6] << " " << t[1] + t[4] + t[7] << " " << t[2] + t[5] + t[8] << std::endl;
+    //}
+
+    //std::cout << "htrhi" << std::endl;
+    int index = 0;
+    //std::cout <<"size" << triangles.size() << std::endl;
+    if (triangles.size() > 2) {
+        //std::cout << "whileloop" << std::endl;
+        while (index < static_cast<int>(triangles.size()) - 1) {
+            //std::cout << index << " " << triangles.size() << std::endl;
+            if (compare_equality_on_midpoint(triangles[index], triangles[index + 1])) {
+
+                //std::cout << "th" << std::endl;
+                triangles.erase(triangles.begin() + index, triangles.begin() + index + 2);
+                //index++;
+            }
+            else {
+               // std::cout << "th" << std::endl;
+                ++index;
+            }
+        }
+        //std::cout << "end while" << std::endl;
+    }
+    if (triangles.size()>0){
+       // Sleep(3000);
+    }
+    //std::cout << "htrhi" << std::endl;
+    
+    return triangles;
+}
+
+
+
+void update_screen(std::vector<std::vector<int>>& screen, const std::vector<std::vector<int>>& triangles, float x_rotation, float y_rotation, float px, float py, float pz) {
+    //std::cout << "screen" << std::endl;
+    screen.assign(characters_per_row * number_of_columns, { 0, 1000000000 });
+    for (std::vector<int> triangle: triangles){
+        //            std::cout << "hhuuhu" << std::endl;
+        float p_x_co1 = triangle[0] - px;
+        float p_y_co1 = triangle[1] - py;
+        float p_z_co1 = triangle[2] - pz;
+
+        float p_x_co2 = triangle[3] - px;
+        float p_y_co2 = triangle[4] - py;
+        float p_z_co2 = triangle[5] - pz;
+
+        float p_x_co3 = triangle[6] - px;
+        float p_y_co3 = triangle[7] - py;
+        float p_z_co3 = triangle[8] - pz;
+        Point3 point1 = { p_x_co1, p_y_co1, p_z_co1 };
+        Point3 point2 = { p_x_co2, p_y_co2, p_z_co2 };
+        Point3 point3 = { p_x_co3, p_y_co3, p_z_co3 };
+        //std::cout << "p" << std::endl;
+        if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) && isPointInFrontOfCamera(x_rotation, y_rotation, point2) && isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
+            //std::cout << "p" << std::endl;
+            add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
+            add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co2, p_y_co2, p_z_co2);
+            add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co3, p_y_co3, p_z_co3);
+
+            //project on screen
+            p_x_co1 = number_of_columns * p_x_co1 / p_z_co1;
+            p_y_co1 = number_of_columns * p_y_co1 / p_z_co1;
+            p_z_co1 = number_of_columns * p_z_co1;
+
+            p_x_co2 = number_of_columns * p_x_co2 / p_z_co2;
+            p_y_co2 = number_of_columns * p_y_co2 / p_z_co2;
+            p_z_co2 = number_of_columns * p_z_co2;
+
+            p_x_co3 = number_of_columns * p_x_co3 / p_z_co3;
+            p_y_co3 = number_of_columns * p_y_co3 / p_z_co3;
+            p_z_co3 = number_of_columns * p_z_co3;
+
+            //rasterize the triangle
+            std::vector<std::vector<float>> rasterized_points = rasterize({ p_x_co1,p_y_co1 ,p_z_co1 }, { p_x_co2,p_y_co2 ,p_z_co2 }, { p_x_co3,p_y_co3 ,p_z_co3 }, 0);
+            //std::cout << rasterized_points.size() << std::endl;
+            for (const std::vector<float>& p : rasterized_points) {
+
+                int p_x_co = p[0];
+                int p_y_co = p[1];
+                int p_z_co = p[2];
+                //std::cout << p_x_co << " " << p_y_co << std::endl;
+                if (p_z_co != 0 && abs(1 * p_y_co) < number_of_columns / 2 && abs(1 * p_x_co) < characters_per_row / 2) {
+                    if (p_z_co > 0 && p_z_co < screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co][1]) {
+                        //std::cout << "giuhwrguiw" << std::endl;
+                            
+                        screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co] = { triangle[9],p_z_co };
+                    }
+                }
+            }
+        }
+
+
+    }
+    /*
     std::vector<Point2> new_points;
     new_points.resize(points.size(), { 0, 0, 0 });
     screen.assign(characters_per_row * number_of_columns, { 0, 1000000000 });
@@ -660,7 +847,7 @@ if (new_points.size() != 0) {
         }
     }
 }
-
+*/
 //std::this_thread::sleep_for(std::chrono::milliseconds(000));
 }
 
@@ -711,8 +898,10 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
         dy = 0;
     }
     std::cout << "ty" << ty << std::endl;
+    ty = 0;
     if (GetAsyncKeyState(VK_SPACE) & 0x8000 && ty == 0) {
         dy = 2;
+        n_py += 5 * delta_time;
     }
     if (GetAsyncKeyState('C') & 0x8000) {
         n_py -= 5 * delta_time;
@@ -721,7 +910,7 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
     if (dy > -10) {
         dy-=1*delta_time;
     }
-    n_py += dy * delta_time;
+    //n_py += dy * delta_time;
     //std::cout << "ty" << ty << std::endl;
     if (GetAsyncKeyState('W') & 0x8000) { // Move forward
         n_px += -3 * std::sin(-x_rotation) * delta_time;
@@ -739,7 +928,7 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
         n_px -= -3 * std::cos(-x_rotation) * delta_time;
         n_pz += -3 * std::sin(x_rotation) * delta_time;
     }
-    collisions(px, py, pz, n_px, n_py, n_pz, blocks);
+    //collisions(px, py, pz, n_px, n_py, n_pz, blocks);
     px += n_px;
     py += n_py;
     pz += n_pz;
@@ -778,18 +967,6 @@ std::vector<std::vector<uint64_t>> blocks_to_chuncks(std::vector<std::vector<int
         chunks[256 * chunk_z + 16 * chunk_y + chunk_x][chunk_block_index] |= (static_cast<uint64_t>(block[3]) << (4 * block_chunk_x));
     }
     return chunks;
-}
-
-int func_for_blo_neigh_chunk(int n) {
-    if (n == 1) {
-        return 15;
-    }
-    if (n == -1) {
-        return 0;
-    }
-    else {
-        return -1;
-    }
 }
 
 std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::vector<uint64_t>> chunks, float px, float py, float pz) {
@@ -880,13 +1057,31 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::ve
     return blocks;
 }
 
+
+
 int main() {
     prepare_points(points);
-    auto last_time = std::chrono::steady_clock::now();
+    
     std::vector<std::vector<int>> screen(characters_per_row * number_of_columns);
     std::vector<std::vector<uint64_t>> chunks = blocks_to_chuncks(points, 16);
     cuboid_to_vertices(points);
+    std::vector<std::vector<int>> triangles;
+    for (int x = 0; x < 16; x++) {
+        for (int y = 0; y < 16; y++) {
+            for (int z = 0; z < 16; z++) {
+                //std::cout << x<<" "<<y<<" "<<z << std::endl;
+                for (std::vector<int> triangle : chunk_to_triangles(chunks, x, y, z)) {
+                    //std::cout << "gdr" << std::endl;
+                    triangles.push_back(triangle);
+                }
+            }
+            
+        }
+    }
+    
+    //Sleep(100000);
     srand(static_cast<unsigned int>(time(nullptr)));
+    auto last_time = std::chrono::steady_clock::now();
     while (true) {
         auto current_time = std::chrono::steady_clock::now();
         std::chrono::duration<float> delta_seconds = current_time - last_time;
@@ -894,8 +1089,9 @@ int main() {
         float delta_time = delta_seconds.count();
         std::cout << delta_time << std::endl;
         controls(x_rotation, y_rotation,px,py,pz, delta_time, blocks_from_neighboring_chunks(chunks,px,py,pz));
-        update_screen(screen, points, x_rotation, y_rotation, px, py, pz); // Update screen content
+        update_screen(screen, triangles, x_rotation, y_rotation, px, py, pz); // Update screen content
         draw_screen(screen);   // Draw updated screen
+        //Sleep(1000);
     }
 
     return 0;
