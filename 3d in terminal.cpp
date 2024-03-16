@@ -44,7 +44,7 @@ int unique_blocks = 1;
 //for 12 (156,40)
 //keep the numbers even
 const int characters_per_row = 156;
-const int number_of_columns = 40;
+const int number_of_columns = 36;
 float dy = 0;
 
 std::vector<char> characters = {
@@ -52,16 +52,16 @@ std::vector<char> characters = {
 };
 
 std::vector<std::vector<int>> points = {
-    {0,0,0,1,1,1},
-    {1,0,0,2,1,1}
+   // {0,0,0,1,1,1},
+    //{1,0,0,2,1,1}
 };
 
 
 float x_rotation = 0;
 float y_rotation = 0;
-float px = 0;
-float py = 10;
-float pz = 0;
+float px = 8*16;
+float py = 8 * 16+10;
+float pz = 8 * 16;
 
 uint64_t hashCoordinates(int x, int y) {
     // Combine the two integers into a single value using bitwise operations
@@ -162,7 +162,7 @@ std::vector<std::vector<float>> perlin_noise_generation(float fx, float fy) {
 
 
     std::vector<std::vector<float>> perlin_noise(256, std::vector<float>(256, 0));
-    for (int x = 0; x < 256 - 16; x++) {
+    for (int x = 0; x < 256-16; x++) {
         for (int y = 0; y < 256 - 16; y++) {
             perlin_noise[x][y] = perlin_noise_at_point(16 * static_cast<float>(x) / 256, 16 * static_cast<float>(y) / 256, non_interpoluated_perlin_noise);
         }
@@ -181,17 +181,17 @@ void prepare_points(std::vector<std::vector<int>>& points) {
     // Generate and print 3 random floating-point numbers (float)
     std::vector<std::vector<float>> perlin_noise = perlin_noise_generation(0.5, 0.5);
     points.reserve(128*128*20+10);
-    for (int x = -64; x < 64; ++x) {
-        for (int z = -64; z < 64; ++z) {
+    for (int x = 7*16; x < 9 * 16; ++x) {
+        for (int z = 7 * 16; z < 9 * 16; ++z) {
             /*int num1 = (dist(gen));
             int num2 = (dist(gen));
             int num3 = (dist(gen));
             */
             int num1 = x;
-            int num2 = 0;
-            //int num2 = perlin_noise[128 + x][128 + z] * 20;
+            //int num2 = 8*16;
+            int num2 = 8*16+perlin_noise[x][z] * 20;
             int num3 = z;
-            for (int i = 0; i < 20; i++) {
+            for (int i = -1; i <20 ; i++) {
                 points.push_back({ num1,num2+i,num3,num1 + 1,num2+i + 1,num3 + 1 });
             }
         }
@@ -563,20 +563,27 @@ std::vector<std::vector<int>> blocks_from_chunk(const std::vector<std::vector<ui
     for (int i = 0; i < 256; i++) {
         for (int j = 0; j < 16; j++) {
             if (((chunks[(cx)+16 * (cy)+256 * (cz)][i] >> 4 * j) & (0b1111)) != 0) {
-                int block_x, block_y, block_z;
-                if (px >= -1 || j != 0) {
+                int block_x = 16 * (cx) + j;
+                int block_y = 16 * (cy) + i % 16;
+                int block_z = 16 * (cz) + i / 16;
+                //int block_x, block_y, block_z;
+               /* if ((cx - 8) + j >= -1 || j != 0) {
                     block_x = 16 * (cx - 8) + j;
                 }
                 else {
                     block_x = 16 * (cx - 8) + 16 - j;
                 }
-                if (pz >= -1 || i / 16 != 0) {
+                if ((cz-8)*8+j/16 >= -1 || i / 16 != 0) {
                     block_z = 16 * (cz - 8) + i / 16;
                 }
                 else {
                     block_z = 16 * (cz - 8) + 16 - i / 16;
                 }
                 block_y = 16 * (cy - 8) + i % 16;
+                if (min(block_z,block_x) < -20) {
+                    std::cout << "ogheo" << std::endl;
+                    Sleep(100);
+                }*/
                 blocks.emplace_back(std::vector<int>{block_x, block_y, block_z});
             }
         }
@@ -611,9 +618,10 @@ bool air_next_to(const std::vector<std::vector<uint64_t>>& chunks, int x, int y,
     int in_cx = (16 + x % 16) % 16;
     int in_cy = (16 + y % 16) % 16;
     int in_cz = (16 + z % 16) % 16;
-    int cx = (8 * 16 + x) / 16;
-    int cy = (8 * 16 + y) / 16;
-    int cz = (8 * 16 + z) / 16;
+    int cx = (x) / 16;
+    int cy = (y) / 16;
+    int cz = (z) / 16;
+    //std::cout << 256 * cz + 16 * cy + cx << std::endl;
     return (((chunks[256 * cz + 16 * cy + cx][16 * in_cz + in_cy] >> (4 * in_cx) ) & (static_cast<uint64_t> (0b1111))) == 0);
 }
 
@@ -649,6 +657,7 @@ std::vector<std::vector<int>> chunk_to_triangles(const std::vector<std::vector<u
         {3, 7, 6,14}
     };
     for (std::vector<int> block : blocks) {
+       // std::cout << block[0] << " " << block[1] << " " << block[2] << std::endl;
         std::vector<std::vector<int>> vertices = make_cuboid(block[0], block[1], block[2], block[0] + 1, block[1] + 1, block[2] + 1);
         if (air_next_to(chunk, block[0] - 1, block[1], block[2])) {
             for (int i = 2; i < 4; i++) {
@@ -1104,10 +1113,10 @@ std::vector<std::vector<uint64_t>> blocks_to_chuncks(std::vector<std::vector<int
         int block_chunk_y = (16 + block[1] % 16) % 16;
         int block_chunk_z = (16 + block[2] % 16) % 16;
         uint64_t chunk_block_index = block_chunk_y + 16 * block_chunk_z;
-        int chunk_x = 8 + block[0] / 16;
-        int chunk_y = 8 + block[1] / 16;
-        int chunk_z = 8 + block[2] / 16;
-        if (block[0] < 0){
+        int chunk_x = ( block[0]) / 16;
+        int chunk_y = (block[1]) / 16;
+        int chunk_z = (block[2]) / 16;
+        /*if (block[0] < 0) {
             chunk_x--;
         }
         if (block[1] < 0) {
@@ -1115,7 +1124,7 @@ std::vector<std::vector<uint64_t>> blocks_to_chuncks(std::vector<std::vector<int
         }
         if (block[2] < 0) {
             chunk_z--;
-        }
+        }*/
         chunks[256 * chunk_z + 16 * chunk_y + chunk_x][chunk_block_index] |= (static_cast<uint64_t>(block[3]) << (4 * block_chunk_x));
     }
     return chunks;
@@ -1123,9 +1132,9 @@ std::vector<std::vector<uint64_t>> blocks_to_chuncks(std::vector<std::vector<int
 
 std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::vector<uint64_t>> chunks, float px, float py, float pz) {
     std::vector<std::vector<int>> blocks;
-    int cx = static_cast<int>(px + 8 * 16) / 16;
-    int cy = static_cast<int>(py + 8 * 16) / 16;
-    int cz = static_cast<int>(pz + 8 * 16) / 16;
+    int cx = static_cast<int>(px) / 16;
+    int cy = static_cast<int>(py) / 16;
+    int cz = static_cast<int>(pz) / 16;
     int n_px = (16 + (static_cast<int>(floor(px)) % 16)) % 16;
     int n_py = (16 + (static_cast<int>(floor(py)) % 16)) % 16;
     int n_pz = (16 + (static_cast<int>(floor(pz)) % 16)) % 16;
@@ -1182,24 +1191,24 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(std::vector<std::ve
                 for (int i = 0; i < 256; i++) {
                     for (int j = 0; j < 16; j++) {
                         if (((chunks[(cx+lx)+16 * (cy+ly)+256 * (cz+lz)][i] >> 4 * j) & (0b1111)) != 0) {
-                            if (px >= -1 || j!=0){
-                                //blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                            blocks.push_back({ 16 * (cx + lx) + j,(cy + ly) * 16 + i % 16,(cz + lz) * 16 + i / 16 });
+                            /*if (px >= -1 || j != 0) {
                                 if (pz >= -1 || i/16 != 0) {
-                                    blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                                    blocks.push_back({ 16 * (cx + lx) + j,(cy + ly) * 16 + i % 16,(cz + lz) * 16 + i / 16 });
                                 }
                                 else {
-                                    blocks.push_back({ 16 * (cx - 8 + lx) + j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + 16-i / 16 });
+                                    blocks.push_back({ 16 * (cx + lx) + j,(cy + ly) * 16 + i % 16,(cz + lz) * 16 + 16-i / 16 });
                                 }
                             }
                             else {
                                 //blocks.push_back({ 16 * (cx - 8 + lx) + 16-j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
                                 if (pz >= -1 || i / 16 != 0) {
-                                    blocks.push_back({ 16 * (cx - 8 + lx) + 16 - j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + i / 16 });
+                                    blocks.push_back({ 16 * (cx + lx) + 16 - j,(cy + ly) * 16 + i % 16,(cz + lz) * 16 + i / 16 });
                                 }
                                 else {
-                                    blocks.push_back({ 16 * (cx - 8 + lx) + 16 - j,(cy + ly - 8) * 16 + i % 16,(cz + lz - 8) * 16 + 16-i / 16 });
+                                    blocks.push_back({ 16 * (cx + lx) + 16 - j,(cy + ly) * 16 + i % 16,(cz + lz) * 16 + 16-i / 16 });
                                 }
-                            }
+                            }*/
                         }
                     }
                 }
