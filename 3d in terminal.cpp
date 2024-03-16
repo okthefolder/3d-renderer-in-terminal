@@ -44,7 +44,7 @@ int unique_blocks = 1;
 //for 12 (156,40)
 //keep the numbers even
 const int characters_per_row = 156;
-const int number_of_columns = 36;
+const int number_of_columns = 40;
 float dy = 0;
 
 std::vector<char> characters = {
@@ -180,6 +180,7 @@ void prepare_points(std::vector<std::vector<int>>& points) {
 
     // Generate and print 3 random floating-point numbers (float)
     std::vector<std::vector<float>> perlin_noise = perlin_noise_generation(0.5, 0.5);
+    points.reserve(128*128*20+10);
     for (int x = -64; x < 64; ++x) {
         for (int z = -64; z < 64; ++z) {
             /*int num1 = (dist(gen));
@@ -187,10 +188,10 @@ void prepare_points(std::vector<std::vector<int>>& points) {
             int num3 = (dist(gen));
             */
             int num1 = x;
-            //int num2 = 0;
-            int num2 = perlin_noise[128 + x][128 + z] * 20;
+            int num2 = 0;
+            //int num2 = perlin_noise[128 + x][128 + z] * 20;
             int num3 = z;
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 20; i++) {
                 points.push_back({ num1,num2+i,num3,num1 + 1,num2+i + 1,num3 + 1 });
             }
         }
@@ -430,7 +431,7 @@ std::vector<float> plane_equation(Point2 p1, Point2 p2, Point2 p3) {
     return { nx, ny, nz, -D };
 }
 
-std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test) {
+std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c) {
     std::vector<std::vector<float>> rasterized;
     std::vector<float> x_co_for_lines_1;
     std::vector<float> x_co_for_lines_2;
@@ -490,7 +491,7 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c,int test)
                     return compareAngles(p1, p2, centroid);
                     });
                 for (int i = 1; i < points_for_triangulation.size() - 1; i++) {
-                    for (std::vector<float> tri_rasteri : rasterize(points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1],1)) {
+                    for (std::vector<float> tri_rasteri : rasterize(points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1])) {
                         rasterized.push_back(tri_rasteri);
                     }
                 }
@@ -606,6 +607,18 @@ bool compare_equality_on_midpoint(const std::vector<int>& a, const std::vector<i
     return ((mid_a[0] == mid_b[0]) && (mid_a[1] == mid_b[1]) && (mid_a[2] == mid_b[2]));
 }
 
+bool air_next_to(const std::vector<std::vector<uint64_t>>& chunks, int x, int y, int z) {
+    int in_cx = (16 + x % 16) % 16;
+    int in_cy = (16 + y % 16) % 16;
+    int in_cz = (16 + z % 16) % 16;
+    int cx = (8 * 16 + x) / 16;
+    int cy = (8 * 16 + y) / 16;
+    int cz = (8 * 16 + z) / 16;
+    return (((chunks[256 * cz + 16 * cy + cx][16 * in_cz + in_cy] >> (4 * in_cx) ) & (static_cast<uint64_t> (0b1111))) == 0);
+}
+
+//chunks[256 * chunk_z + 16 * chunk_y + chunk_x][chunk_block_index] |= (static_cast<uint64_t>(block[3]) << (4 * block_chunk_x));
+
 std::vector<std::vector<int>> chunk_to_triangles(const std::vector<std::vector<uint64_t>>& chunk, int cx,int cy,int cz) {
     std::vector<std::vector<int>> blocks=blocks_from_chunk(chunk, cx, cy, cz);
     //std::cout << "tytyt" << std::endl;
@@ -614,29 +627,167 @@ std::vector<std::vector<int>> chunk_to_triangles(const std::vector<std::vector<u
         // Front face
         {0, 2, 1,1},
         {0, 3, 2,1},
-        // Back face
 
+        // Left face
         {0, 7, 4,4},
         {0, 3, 7,4},
-        // Top face
+
+        // Bottom face
         {0, 1, 5,7},
         {0, 4, 5,7},
-        // Bottom face
+
+        // Back face
         {4, 6, 5,9},
         {4, 7, 6,9},
-        // Left face
+
+        // Right face
         {1, 6, 5,12},
         {1, 2, 6,12},
-        // Right face
+
+        // Top face
         {3, 2, 6,14},
         {3, 7, 6,14}
     };
     for (std::vector<int> block : blocks) {
         std::vector<std::vector<int>> vertices = make_cuboid(block[0], block[1], block[2], block[0] + 1, block[1] + 1, block[2] + 1);
-        for (std::vector<int> triangle : faces) {
-            //std::cout << vertices[triangle[0]][0] + vertices[triangle[1]][0] + vertices[triangle[2]][0] << " " << vertices[triangle[0]][1] + vertices[triangle[1]][1] + vertices[triangle[2]][1] << " " << vertices[triangle[0]][2] + vertices[triangle[1]][2] + vertices[triangle[2]][2] << std::endl;
-            triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+        if (air_next_to(chunk, block[0] - 1, block[1], block[2])) {
+            for (int i = 2; i < 4; i++) {
+                std::vector<int> triangle = faces[i];
+                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+            }
         }
+        if (air_next_to(chunk, block[0] + 1, block[1], block[2])) {
+            for (int i = 8; i < 10; i++) {
+                std::vector<int> triangle = faces[i];
+                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+            }
+        }
+
+
+        if (air_next_to(chunk, block[0], block[1]-1, block[2])) {
+            for (int i = 4; i < 6; i++) {
+                std::vector<int> triangle = faces[i];
+                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+            }
+        }
+        if (air_next_to(chunk, block[0], block[1]+1, block[2])) {
+            for (int i = 10; i < 12; i++) {
+                std::vector<int> triangle = faces[i];
+                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+            }
+        }
+        
+        if (air_next_to(chunk, block[0], block[1], block[2]-1)) {
+            for (int i = 0; i < 2; i++) {
+                std::vector<int> triangle = faces[i];
+                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+            }
+        }
+        if (air_next_to(chunk, block[0], block[1], block[2]+1)) {
+            for (int i = 6; i < 8; i++) {
+                std::vector<int> triangle = faces[i];
+                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+            }
+        }
+    }
+        /*std::vector<std::vector<int>> vertices = make_cuboid(block[0], block[1], block[2], block[0] + 1, block[1] + 1, block[2] + 1);
+        if (min((16+block[0]%16)%16, (16 + block[1] % 16) % 16, (16 + block[2] % 16) % 16) != 0 && max((16 + block[0] % 16) % 16, (16 + block[1] % 16) % 16, (16 + block[2] % 16) % 16) != 15) {
+            for (std::vector<int> triangle : faces) {
+                //std::cout << vertices[triangle[0]][0] + vertices[triangle[1]][0] + vertices[triangle[2]][0] << " " << vertices[triangle[0]][1] + vertices[triangle[1]][1] + vertices[triangle[2]][1] << " " << vertices[triangle[0]][2] + vertices[triangle[1]][2] + vertices[triangle[2]][2] << std::endl;
+                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+            }
+        }
+        else if(max(8+block[0]/16, 8 + block[1] / 16, 8 + block[2] / 16)<15 && min(8 + block[0] / 16, 8 + block[1] / 16, 8 + block[2] / 16) > 0) {
+            int chunk_index = (16 + block[1] % 16) % 16 + 16 * ((16 + block[2] % 16) % 16);
+            if ((16 + block[0] % 16) % 16 == 0) {
+                if ((chunk[(7 + block[0] / 16) + 16 * (8 + block[1] / 16) + 256 * (8 + block[2] / 16)][chunk_index] | (static_cast<uint64_t>(0b1111) << 60)) == 0) {
+                    for (int i = 2; i < 4; i++) {
+                        std::vector<int> triangle = faces[i];
+                        triangles.push_back({vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3]});
+                    }
+                }
+            }
+            else {
+                for (int i = 2; i < 4; i++) {
+                    std::vector<int> triangle = faces[i];
+                    triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                }
+            }
+            if ((16 + block[0] % 16) % 16 == 15) {
+                if ((chunk[(9 + block[0] / 16) + 16 * (8 + block[1] / 16) + 256 * (8 + block[2] / 16)][chunk_index] | (static_cast<uint64_t>(0b1111) << 0)) == 0) {
+                    for (int i = 8; i < 10; i++) {
+                        std::vector<int> triangle = faces[i];
+                        triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                    }
+                }
+            }
+            else {
+                for (int i = 8; i < 10; i++) {
+                    std::vector<int> triangle = faces[i];
+                    triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                }
+            }
+
+            if ((16 + block[1] % 16) % 16 == 0) {
+                if ((chunk[(8 + block[0] / 16) + 16 * (7 + block[1] / 16) + 256 * (8 + block[2] / 16)][chunk_index-1] | (static_cast<uint64_t>(0b1111) << ((16 + block[0] % 16) % 16))) == 0) {
+                    for (int i = 4; i < 6; i++) {
+                        std::vector<int> triangle = faces[i];
+                        triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                    }
+                }
+            }
+            else {
+                for (int i = 4; i < 6; i++) {
+                    std::vector<int> triangle = faces[i];
+                    triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                }
+            }
+            if ((16 + block[1] % 16) % 16 == 15) {
+                if ((chunk[(7 + block[0] / 16) + 16 * (9 + block[1] / 16) + 256 * (8 + block[2] / 16)][chunk_index+1] | (static_cast<uint64_t>(0b1111) << ((16 + block[0] % 16) % 16))) == 0) {
+                    for (int i = 10; i < 12; i++) {
+                        std::vector<int> triangle = faces[i];
+                        triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                    }
+                }
+            }
+            else {
+                for (int i = 10; i < 12; i++) {
+                    std::vector<int> triangle = faces[i];
+                    triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                }
+            }
+
+            if ((16 + block[2] % 16) % 16 == 0) {
+                if ((chunk[(8 + block[0] / 16) + 16 * (8 + block[1] / 16) + 256 * (7 + block[2] / 16)][chunk_index-16] | (static_cast<uint64_t>(0b1111) << ((16+block[0]%16)%16) )) == 0) {
+                    for (int i = 6; i < 8; i++) {
+                        std::vector<int> triangle = faces[i];
+                        triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                    }
+                }
+            }
+            else {
+                for (int i = 6; i < 8; i++) {
+                    std::vector<int> triangle = faces[i];
+                    triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                }
+            }
+            if ((16 + block[2] % 16) % 16 == 15) {
+                if ((chunk[(8 + block[0] / 16) + 16 * (8 + block[1] / 16) + 256 * (9 + block[2] / 16)][chunk_index+16] | (static_cast<uint64_t>(0b1111) << ((16 + block[0] % 16) % 16))) == 0) {
+                    for (int i = 0; i < 2; i++) {
+                        std::vector<int> triangle = faces[i];
+                        triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                    }
+                }
+            }
+            else {
+                for (int i = 0; i < 2; i++) {
+                    std::vector<int> triangle = faces[i];
+                    triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3] });
+                }
+            }
+
+        }
+        
        // std::cout << " " << std::endl;
 
     }
@@ -672,7 +823,8 @@ std::vector<std::vector<int>> chunk_to_triangles(const std::vector<std::vector<u
        // Sleep(3000);
     }
     //std::cout << "htrhi" << std::endl;
-    
+    */
+    //std::cout << triangles.size() << std::endl;
     return triangles;
 }
 
@@ -718,7 +870,7 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::vector<std:
             p_z_co3 = number_of_columns * p_z_co3;
 
             //rasterize the triangle
-            std::vector<std::vector<float>> rasterized_points = rasterize({ p_x_co1,p_y_co1 ,p_z_co1 }, { p_x_co2,p_y_co2 ,p_z_co2 }, { p_x_co3,p_y_co3 ,p_z_co3 }, 0);
+            std::vector<std::vector<float>> rasterized_points = rasterize({ p_x_co1,p_y_co1 ,p_z_co1 }, { p_x_co2,p_y_co2 ,p_z_co2 }, { p_x_co3,p_y_co3 ,p_z_co3 });
             //std::cout << rasterized_points.size() << std::endl;
             for (const std::vector<float>& p : rasterized_points) {
 
@@ -1072,16 +1224,17 @@ int main() {
                 //std::cout << x<<" "<<y<<" "<<z << std::endl;
                 for (std::vector<int> triangle : chunk_to_triangles(chunks, x, y, z)) {
                     //std::cout << "gdr" << std::endl;
-                    triangles.push_back(triangle);
+                    triangles.push_back(std::move(triangle));
+                    //triangles.push_back(triangle);
                 }
             }
-            
+            std::cout << 100 * ((static_cast<float>(x) + static_cast<float>(y) / 16) / 16) << "%" << std::endl;
         }
+        
     }
-    
-    //Sleep(100000);
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
+    std::cout << "start" << std::endl;
     while (true) {
         auto current_time = std::chrono::steady_clock::now();
         std::chrono::duration<float> delta_seconds = current_time - last_time;
@@ -1089,8 +1242,9 @@ int main() {
         float delta_time = delta_seconds.count();
         std::cout << delta_time << std::endl;
         controls(x_rotation, y_rotation,px,py,pz, delta_time, blocks_from_neighboring_chunks(chunks,px,py,pz));
-        update_screen(screen, triangles, x_rotation, y_rotation, px, py, pz); // Update screen content
-        draw_screen(screen);   // Draw updated screen
+        update_screen(screen, triangles, x_rotation, y_rotation, px, py, pz);
+        draw_screen(screen);
+        std::cout << px << " " << py << " " << pz << std::endl;
         //Sleep(1000);
     }
 
