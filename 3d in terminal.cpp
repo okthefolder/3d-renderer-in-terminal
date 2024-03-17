@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <chrono>
 #include <random>
+#include <unordered_map>
+#include <tuple>
 void clear_screen() {
 #ifdef _WIN32
     system("cls");
@@ -34,6 +36,23 @@ struct Point2 {
     float y;
     float z;
 
+};
+
+struct TupleHash {
+    template <typename T, typename U, typename V>
+    std::size_t operator()(const std::tuple<T, U, V>& t) const {
+        auto hash1 = std::hash<T>{}(std::get<0>(t));
+        auto hash2 = std::hash<U>{}(std::get<1>(t));
+        auto hash3 = std::hash<V>{}(std::get<2>(t));
+        return hash1 ^ hash2 ^ hash3;
+    }
+};
+
+struct TupleEqual {
+    template <typename T, typename U, typename V>
+    bool operator()(const std::tuple<T, U, V>& t1, const std::tuple<T, U, V>& t2) const {
+        return t1 == t2;
+    }
 };
 
 const int world_x = 16;
@@ -62,7 +81,7 @@ std::vector<std::vector<int>> points = {
 float x_rotation = 0;
 float y_rotation = 0;
 float px = 8*16;
-float py = 8 * 16+30;
+float py = 8 * 16+100;
 float pz = 8 * 16;
 
 uint64_t hashCoordinates(int x, int y) {
@@ -173,6 +192,63 @@ std::vector<std::vector<float>> perlin_noise_generation(float fx, float fy) {
 
 }
 
+std::vector<std::vector<float>> perlin_noise_at_chunk(int cx, int cy, int cz, float fx, float fz) {
+    std::vector<std::vector<std::vector<float>>> random_vectors(3, std::vector<std::vector<float>>(3, std::vector<float>(2)));
+    // Initialize random vectors
+    for (int x = 0; x < 3; ++x) {
+        for (int z = 0; z < 3; ++z) {
+            random_vectors[x][z] = getDeerministicRandomVector(x + cx, z + cz);
+        }
+    }
+
+    // Initialize non-interpolated perlin noise
+    std::vector<std::vector<float>> non_interpolated_perlin_noise(2, std::vector<float>(2, 0));
+
+    // Calculate perlin noise
+    for (int x = 0; x < 2; ++x) {
+        for (int z = 0; z < 2; ++z) {
+            non_interpolated_perlin_noise[x][z] += dot_product(random_vectors[x][z], { fx, fz });
+            non_interpolated_perlin_noise[x][z] += dot_product(random_vectors[x + 1][z], { 1 - fx, fz });
+            non_interpolated_perlin_noise[x][z] += dot_product(random_vectors[x][z + 1], { fx, 1 - fz });
+            non_interpolated_perlin_noise[x][z] += dot_product(random_vectors[x + 1][z + 1], { 1 - fx, 1 - fz });
+            non_interpolated_perlin_noise[x][z] /= 4;
+        }
+    }
+
+    // Interpolate perlin noise for each point
+    std::vector<std::vector<float>> perlin_noise(16, std::vector<float>(16, 0));
+    for (int x = 0; x < 16; ++x) {
+        for (int z = 0; z < 16; ++z) {
+            perlin_noise[x][z] = perlin_noise_at_point(static_cast<float>(x) / 16, static_cast<float>(z) / 16, non_interpolated_perlin_noise);
+        }
+    }
+    return perlin_noise;
+}
+
+std::vector<uint64_t> make_chunk(int cx, int cy, int cz) {
+    std::vector<std::vector<float>> perlin_noise = perlin_noise_at_chunk(cx, cy, cz, 0.5, 0.5);
+    std::vector<uint64_t> chunk(16*16,0);
+    for (int x = 0; x < 16; x++) {
+        for (int z=0; z < 16; z++) {
+            int num1 = x;
+            //int num2 = 8*16;
+            int num2 = 8*16-16*cy+(perlin_noise[x][z]+1) * 8;
+            if (perlin_noise[x][z] > 1 || perlin_noise[x][z] < -1) {
+                std::cout << "esogs" << std::endl;
+            }
+            int num3 = z;
+            //std::cout << num2 << std::endl;
+            for (int i = 0; i < 10; i++) {
+                if (num2 + i < 16 && num2 + i >= 0) {
+                    chunk[16 * num3 + num2 + i] |= (static_cast<uint64_t>(0b1111) << (4 * x));
+                    //std::cout << chunk[16 * num3 + num2 + i] << std::endl;
+                }
+            }
+        }
+    }
+    return chunk;
+}
+
 void prepare_points(std::vector<std::vector<int>>& points) {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -182,15 +258,11 @@ void prepare_points(std::vector<std::vector<int>>& points) {
 
     // Generate and print 3 random floating-point numbers (float)
     std::vector<std::vector<float>> perlin_noise = perlin_noise_generation(0.5, 0.5);
+    std::vector<std::vector<int>> chunk;
     points.reserve(128*128*20+10);
     for (int x = 1; x < 16 * 16-1; ++x) {
         for (int z = 1; z < 16 * 16-1; ++z) {
-            /*int num1 = (dist(gen));
-            int num2 = (dist(gen));
-            int num3 = (dist(gen));
-            */
             int num1 = x;
-            //int num2 = 8*16;
             int num2 = 8*16+perlin_noise[x][z] * 20;
             int num3 = z;
             for (int i = -1; i <20 ; i++) {
@@ -624,6 +696,7 @@ bool air_next_to(const std::vector<std::vector<uint64_t>>& chunks, int x, int y,
 
 std::vector<std::vector<int>> chunk_to_triangles(const std::vector<std::vector<uint64_t>>& chunk, int cx,int cy,int cz) {
     std::vector<std::vector<int>> blocks=blocks_from_chunk(chunk, cx, cy, cz);
+    //std::cout << blocks.size() << std::endl;;
     //std::cout << "tytyt" << std::endl;
     std::vector<std::vector<int>> triangles;
     std::vector<std::vector<int>> faces = {
@@ -719,7 +792,7 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::vector<std:
         Point3 point2 = { p_x_co2, p_y_co2, p_z_co2 };
         Point3 point3 = { p_x_co3, p_y_co3, p_z_co3 };
 
-        if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) && isPointInFrontOfCamera(x_rotation, y_rotation, point2) && isPointInFrontOfCamera(x_rotation, y_rotation, point3) && abs(p_z_co1)<20 && abs(p_y_co1) < 20 && abs(p_x_co1) < 20) {
+        if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) && isPointInFrontOfCamera(x_rotation, y_rotation, point2) && isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
             //std::cout << p_z_co1 << std::endl;
             //std::cout << "p" << std::endl;
             add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
@@ -975,10 +1048,43 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(const std::vector<s
 
 
 int main() {
-    prepare_points(points);
-    
+    //prepare_points(points);
+    std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual> map_chunks;
+    for (int x = 0; x < 16; x++) {
+        for (int y = 0; y < 16; y++) {
+            for (int z = 0; z < 16; z++) {
+                map_chunks.insert(std::make_pair(std::make_tuple(x, y, z), make_chunk(x, y, z)));
+            }
+        }
+        std::cout << x << std::endl;
+    }
     std::vector<std::vector<int>> screen(characters_per_row * number_of_columns);
-    std::vector<std::vector<uint64_t>> chunks = blocks_to_chuncks(points, 16);
+    std::vector<std::vector<uint64_t>> chunks(16*16*16,std::vector<uint64_t>(0));
+    for (int x = 0; x < 16; x++) {
+        for (int y = 0; y < 16; y++) {
+            for (int z = 0; z < 16; z++) {
+                chunks[256*z+16*y+x]=(map_chunks[std::make_tuple(x, y, z)]);
+            }
+        }
+        std::cout << x << std::endl;
+    }
+
+    std::vector<std::vector<int>> triangles;
+    for (int x = 1; x < 15; x++) {
+        for (int y = 1; y < 15; y++) {
+            for (int z = 1; z < 15; z++) {
+                //std::cout << x<<" "<<y<<" "<<z << std::endl;
+                for (std::vector<int> triangle : chunk_to_triangles(chunks, x, y, z)) {
+                    //std::cout << "gdr" << std::endl;
+                    triangles.push_back(std::move(triangle));
+                    //triangles.push_back(triangle);
+                }
+            }
+            std::cout << 100 * ((static_cast<float>(x) + static_cast<float>(y) / 16) / 16) << "%" << std::endl;
+        }
+
+    }
+    /*std::vector<std::vector<uint64_t>> chunks = blocks_to_chuncks(points, 16);
     cuboid_to_vertices(points);
     std::vector<std::vector<int>> triangles;
     for (int x = 0; x < 16; x++) {
@@ -994,7 +1100,7 @@ int main() {
             std::cout << 100 * ((static_cast<float>(x) + static_cast<float>(y) / 16) / 16) << "%" << std::endl;
         }
         
-    }
+    }*/
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
     std::cout << "start" << std::endl;
@@ -1008,7 +1114,7 @@ int main() {
         controls(x_rotation, y_rotation,px,py,pz, delta_time, blocks_from_neighboring_chunks(chunks,px,py,pz));
         update_screen(screen, triangles, x_rotation, y_rotation, px, py, pz);
         draw_screen(screen);
-        //std::cout << px << " " << py << " " << pz<<" "<<dy << '\n';
+        std::cout << px << " " << py << " " << pz<<" "<<dy << '\n';
         //Sleep(1000);
     }
 
