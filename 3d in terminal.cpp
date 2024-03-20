@@ -637,24 +637,6 @@ std::vector<std::vector<int>> blocks_from_chunk(const std::unordered_map<std::tu
                 int block_x = 16 * (cx) + j;
                 int block_y = 16 * (cy) + i % 16;
                 int block_z = 16 * (cz) + i / 16;
-                //int block_x, block_y, block_z;
-               /* if ((cx - 8) + j >= -1 || j != 0) {
-                    block_x = 16 * (cx - 8) + j;
-                }
-                else {
-                    block_x = 16 * (cx - 8) + 16 - j;
-                }
-                if ((cz-8)*8+j/16 >= -1 || i / 16 != 0) {
-                    block_z = 16 * (cz - 8) + i / 16;
-                }
-                else {
-                    block_z = 16 * (cz - 8) + 16 - i / 16;
-                }
-                block_y = 16 * (cy - 8) + i % 16;
-                if (min(block_z,block_x) < -20) {
-                    std::cout << "ogheo" << std::endl;
-                    Sleep(100);
-                }*/
                 blocks.emplace_back(std::vector<int>{block_x, block_y, block_z});
             }
         }
@@ -862,8 +844,6 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
         }
         
     }
-    //std::cout << u << std::endl;
-    //Sleep(100);
 }
 
 void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n_pz, const std::vector<std::vector<int>>& blocks) {
@@ -894,18 +874,6 @@ void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n
                 (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
                 n_pz = 0;
             }
-            
-            //std::cout << "collision" << std::endl;
-            /*if (newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) {
-                n_px = 0;
-            }
-            if (newPlayer.py - newPlayer.size < by + 1 && newPlayer.py + newPlayer.size > by) {
-                n_py = 0;
-            }
-            if (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz) {
-                n_pz = 0;
-            }
-            */
         }
     }
     
@@ -1086,55 +1054,19 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(const std::unordere
 
 
 int main() {
-    //prepare_points(points);
     std::vector<std::vector<int>> screen(characters_per_row * number_of_columns);
     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual> map_chunks;
     std::unordered_map<std::tuple<int, int, int>, std::vector<std::vector<int>>, TupleHash, TupleEqual> map_triangles;
-    /*for (int x = 3; x < 13; x++) {
-        for (int y = 3; y < 13; y++) {
-            for (int z = 3; z < 13; z++) {
-                map_chunks.insert(std::make_pair(std::make_tuple(x, y, z), make_chunk(x, y, z)));
-            }
-        }
-        std::cout << x << std::endl;
-    }
-    
-    std::vector<std::vector<uint64_t>> chunks(16*16*16,std::vector<uint64_t>(0));
-    for (int x = 3; x < 13; x++) {
-        for (int y = 3; y < 13; y++) {
-            for (int z = 3; z < 13; z++) {
-                chunks[256*z+16*y+x]=(map_chunks[std::make_tuple(x, y, z)]);
-            }
-        }
-        std::cout << x << std::endl;
-    }
-
-    std::vector<std::vector<int>> triangles;
-    for (int x = 4; x < 12; x++) {
-        for (int y = 4; y < 12; y++) {
-            for (int z = 4; z < 12; z++) {
-                for (std::vector<int> triangle : chunk_to_triangles(chunks, x, y, z)) {
-                    triangles.push_back(std::move(triangle));
-                }
-            }
-            std::cout << 100 * ((static_cast<float>(x) + static_cast<float>(y) / 16) / 16) << "%" << std::endl;
-        }
-
-    }*/
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
-    //std::cout << "start" << std::endl;
-    //update_screen(screen, triangles, x_rotation, y_rotation, px, py, pz);
     int render_distance = 4;
     while (true) {
         for (int x = -render_distance; x <= render_distance; x++) {
             for (int y = -render_distance; y <= render_distance; y++) {
                 for (int z = -render_distance; z <= render_distance; z++) {
-                    //std::cout << x << " " << y << " " << z << std::endl;
                     std::tuple<int, int, int> key = std::make_tuple(px / 16 + x, py / 16 + y, pz / 16 + z);
                     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>::iterator it = map_chunks.find(key);
                     if (it == map_chunks.end()) {
-                        //td::cout << "r" << std::endl;
                         map_chunks[key] = make_chunk(px / 16 + x, py / 16 + y, pz / 16 + z);
                         std::vector<uint64_t> chunk = map_chunks[key];
                         map_triangles[key] = chunk_to_triangles(map_chunks, px / 16 + x, py / 16 + y, pz / 16 + z);
@@ -1142,13 +1074,11 @@ int main() {
                 }
             }
         }
-        //std::cout << "rus" << std::endl;
         std::vector<std::tuple<int, int, int>> keysToRemove;
         for (auto& pair : map_chunks) {
             const std::tuple<int, int, int>& co = pair.first;
             if (abs(std::get<0>(co) - static_cast<int>(px) / 16) > render_distance || abs(std::get<1>(co) - static_cast<int>(py) / 16) > render_distance || abs(std::get<2>(co) - static_cast<int>(pz) / 16) > render_distance) {
-                //std::cout << std::get<0>(co)<<" "<< std::get<1>(co)<<" "<< std::get<2>(co)<< std::endl;
-                keysToRemove.push_back(co); // Add key to keysToRemove
+                keysToRemove.push_back(co);
             }
         }
 
