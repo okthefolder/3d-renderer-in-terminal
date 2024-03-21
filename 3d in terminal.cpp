@@ -81,6 +81,17 @@ std::vector<std::vector<int>> points = {
     //{1,0,0,2,1,1}
 };
 
+std::vector<std::vector<int>> dirtTexture = {
+    {1, 3, 2, 2, 1, 3, 2, 1},
+    {2, 2, 1, 3, 1, 2, 3, 1},
+    {3, 1, 2, 2, 3, 1, 1, 2},
+    {2, 3, 1, 1, 2, 3, 1, 2},
+    {1, 2, 3, 2, 1, 1, 2, 3},
+    {3, 1, 2, 3, 1, 2, 2, 1},
+    {2, 2, 3, 1, 2, 1, 3, 1},
+    {1, 3, 1, 2, 3, 2, 1, 3}
+};
+
 
 float x_rotation = 0;
 float y_rotation = 0;
@@ -335,15 +346,19 @@ void draw_screen(const std::vector<std::vector<int>>& screen) {
 
     for (int i = 0; i < buffer_size; ++i) {
         int value = screen[i][0];
-        //if (screen[i][2] !=-1) {
+        if (screen[i][2] != -1) {
             //if (abs(screen[i][2] / 100) > 10) {
                 //std::cout << screen[i][2] / 100 << std::endl;
                 //leep(10);
             //}
-            
+
             //value += min(abs(screen[i][2]/100), 10);
         //}
-        value += screen[i][2] / 200+ screen[i][3] / 200;
+
+            //std::cout << dirtTexture[(7 * screen[i][2]) / 1000][(7 * screen[i][3]) / 1000] << std::endl;
+            //value += dirtTexture[(7*screen[i][2])/1000][(7 * screen[i][3]) / 1000];
+            value += screen[i][3] / 200;
+        }
         buffer[i] = (value != 0) ? characters[value] : ' ';
     }
 
@@ -518,26 +533,45 @@ std::vector<float> plane_equation(Point2 p1, Point2 p2, Point2 p3) {
     return { nx, ny, nz, -D };
 }
 
-std::vector<float> to_UV(const Point2& a, const Point2& b, const Point2& c, const  float& x, const float& y) {
-    float area_abc = ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
-    if (area_abc <= 5){
-        return{ 0,0 };
+std::vector<float> to_UV(const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z) {
+    float area_abc = abs((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
+    if (area_abc <= 5) {
+        return { 0, 0 };
     }
+    float u = abs((b.y - c.y) * (x - c.x) + (c.x - b.x) * (y - c.y)) / area_abc;
+    float v = abs((c.y - a.y) * (x - c.x) + (a.x - c.x) * (y - c.y)) / area_abc;
+    float w = abs(1.0f - u - v);
 
-    //std::cout << area_abc << std::endl;
-    float u = ((b.y - c.y) * (x - c.x) + (c.x - b.x) * (y - c.y)) / area_abc;
-    float v = ((c.y - a.y) * (x - c.x) + (a.x - c.x) * (y - c.y)) / area_abc;
+    // Perspective correction
+    float perspective_correction = 1.0f / z;
+    u *= perspective_correction;
+    v *= perspective_correction;
+
+    float uva = max(0.0f, min(1.0f, u * a.u + v * b.u + w * c.u));
+    float uvb = max(0.0f, min(1.0f, u * a.v + v * b.v + w * c.v));
+
+    return { uva, uvb };
+}
+
+bool isPointInsideTriangle(const Point2& a, const Point2& b, const Point2& c, const Point2& p) {
+    // Calculate signed area of triangle ABC
+    float area_abc = ((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
+
+    // Determine the orientation of the triangle
+    bool clockwise = area_abc < 0; // Clockwise if area is negative
+
+    // Calculate barycentric coordinates
+    float u = ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) / area_abc;
+    float v = ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) / area_abc;
     float w = 1.0f - u - v;
 
-    float uva = max(0,min(1,u * a.u + v * b.u + w * c.u));
-    float uvb = max(0,min(1,u * a.v + v * b.v + w * c.v));
-
-    /*if (uva > 2 || uvb > 2) {
-        std::cout <<"P1 " << a.x << " " << a.y << " P2: " << b.x << " " << b.y << " P3: " << c.x << " " << c.y << " Point that should be inside the triangle:" << x << " " << y << std::endl;
-        Sleep(10000);
-    }*/
-
-    return { uva,uvb };
+    // Check if point is inside triangle based on orientation
+    if (clockwise) {
+        return (u <= 0 && v <= 0 && w <= 0); // Inside if all barycentric coordinates are non-positive
+    }
+    else {
+        return (u >= 0 && v >= 0 && w >= 0); // Inside if all barycentric coordinates are non-negative
+    }
 }
 
 std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c) {
@@ -567,15 +601,15 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c) {
                 points_for_triangulation.push_back(c);
                // std::cout << c.x << " c " << c.y << std::endl;
             };
-            for (Point2 p : a_b_intersection) {
+            for (Point2& p : a_b_intersection) {
                // std::cout << p.x << " a_b " << p.y <<" " <<p.z<< std::endl;
                 points_for_triangulation.push_back(p);
             }
-            for (Point2 p : a_c_intersection) {
+            for (Point2& p : a_c_intersection) {
                 //std::cout << p.x << " a_c " << p.y << " " << p.z << std::endl;
                 points_for_triangulation.push_back(p);
             }
-            for (Point2 p : b_c_intersection) {
+            for (Point2& p : b_c_intersection) {
                 //std::cout << p.x << " b_c " << p.y << " " << p.z << std::endl;
                 points_for_triangulation.push_back(p);
             }
@@ -590,7 +624,7 @@ std::vector<std::vector<float>> rasterize(Point2 a, Point2 b, Point2 c) {
             if (points_for_triangulation.size() != 0) {
                 float centroidx = 0;
                 float centroidy = 0;
-                for (Point2 p : points_for_triangulation) {
+                for (Point2& p : points_for_triangulation) {
                     
                     centroidx += p.x;
                     centroidy += p.y;
@@ -911,7 +945,11 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                         //std::cout << characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co<<"\n";
                         if (p_z_co > 0 && p_z_co < screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co][1]) {
                             //std::cout << "giuhwrguiw\n";
-                            std::vector<float> UV_co = to_UV({ p_x_co1,p_y_co1,0, p_u_co1, p_v_co1 }, { p_x_co2,p_y_co2,0 , p_u_co2, p_v_co2 }, { p_x_co3,p_y_co3,0 , p_u_co3, p_v_co3 }, p_x_co, p_y_co);
+                            //std::vector<float> UV_co = { 0,0 };
+                            //if (isPointInsideTriangle({ p_x_co1,p_y_co1 }, { p_x_co2,p_y_co2 }, { p_x_co3,p_y_co3 }, { static_cast<float>(p_x_co), static_cast<float>(p_y_co) })) {
+                               // std::cout << "rgherg" << std::endl;
+                                std::vector<float> UV_co = to_UV({ p_x_co1,p_y_co1,p_z_co1, p_u_co1, p_v_co1 }, { p_x_co2,p_y_co2,p_z_co2, p_u_co2, p_v_co2 }, { p_x_co3,p_y_co3,p_z_co3 , p_u_co3, p_v_co3 }, p_x_co, p_y_co, p_z_co);
+                            //}
                             //std::cout << UV_co[0] << " " << UV_co[1] << std::endl;
                             //std::cout << "rere" << std::endl;
                             #pragma omp critical
