@@ -355,9 +355,14 @@ void draw_screen(const std::vector<std::vector<int>>& screen) {
             //value += min(abs(screen[i][2]/100), 10);
         //}
 
-            //std::cout << dirtTexture[(7 * screen[i][2]) / 1000][(7 * screen[i][3]) / 1000] << std::endl;
-            //value += dirtTexture[(7*screen[i][2])/1000][(7 * screen[i][3]) / 1000];
-            value += screen[i][3] / 200;
+            //std::cout << screen[i][2]<<" "<< screen[i][3] << std::endl;
+            if (screen[i][2]!=0) {
+                //Sleep(100);
+            }
+            if (screen[i][2]>1000 || screen[i][3]>1000)
+            std::cout << screen[i][2] << " " << screen[i][3] << std::endl;
+            value += dirtTexture[(7*screen[i][2])/1000][(7 * screen[i][3]) / 1000];
+            //value += screen[i][2] / 200;
         }
         buffer[i] = (value != 0) ? characters[value] : ' ';
     }
@@ -534,22 +539,16 @@ std::vector<float> plane_equation(Point2 p1, Point2 p2, Point2 p3) {
 }
 
 std::vector<float> to_UV(const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z) {
+    //std::cout << a.u - a.v << " " << b.u - b.v << " " << c.u - c.v << std::endl;
     float area_abc = abs((b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y));
-    if (area_abc <= 5) {
+    if (area_abc <= 5 || z<1) {
         return { 0, 0 };
     }
     float u = abs((b.y - c.y) * (x - c.x) + (c.x - b.x) * (y - c.y)) / area_abc;
     float v = abs((c.y - a.y) * (x - c.x) + (a.x - c.x) * (y - c.y)) / area_abc;
     float w = abs(1.0f - u - v);
-
-    // Perspective correction
-    float perspective_correction = 1.0f / z;
-    u *= perspective_correction;
-    v *= perspective_correction;
-
     float uva = max(0.0f, min(1.0f, u * a.u + v * b.u + w * c.u));
     float uvb = max(0.0f, min(1.0f, u * a.v + v * b.v + w * c.v));
-
     return { uva, uvb };
 }
 
@@ -921,15 +920,15 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                 //project on screen
                 p_x_co1 = number_of_columns * p_x_co1 / p_z_co1;
                 p_y_co1 = number_of_columns * p_y_co1 / p_z_co1;
-                p_z_co1 = number_of_columns * p_z_co1;
+                p_z_co1 *= number_of_columns;
 
                 p_x_co2 = number_of_columns * p_x_co2 / p_z_co2;
                 p_y_co2 = number_of_columns * p_y_co2 / p_z_co2;
-                p_z_co2 = number_of_columns * p_z_co2;
+                p_z_co2 *= number_of_columns;
 
                 p_x_co3 = number_of_columns * p_x_co3 / p_z_co3;
                 p_y_co3 = number_of_columns * p_y_co3 / p_z_co3;
-                p_z_co3 = number_of_columns * p_z_co3;
+                p_z_co3 *= number_of_columns;
 
                 //rasterize the triangle
                 std::vector<std::vector<float>> rasterized_points = rasterize({ p_x_co1,p_y_co1 ,p_z_co1 }, { p_x_co2,p_y_co2 ,p_z_co2 }, { p_x_co3,p_y_co3 ,p_z_co3 });
@@ -944,14 +943,8 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                     if (p_z_co != 0 && abs(1 * p_y_co) < number_of_columns / 2 && abs(1 * p_x_co) < characters_per_row / 2) {
                         //std::cout << characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co<<"\n";
                         if (p_z_co > 0 && p_z_co < screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co][1]) {
-                            //std::cout << "giuhwrguiw\n";
                             //std::vector<float> UV_co = { 0,0 };
-                            //if (isPointInsideTriangle({ p_x_co1,p_y_co1 }, { p_x_co2,p_y_co2 }, { p_x_co3,p_y_co3 }, { static_cast<float>(p_x_co), static_cast<float>(p_y_co) })) {
-                               // std::cout << "rgherg" << std::endl;
-                                std::vector<float> UV_co = to_UV({ p_x_co1,p_y_co1,p_z_co1, p_u_co1, p_v_co1 }, { p_x_co2,p_y_co2,p_z_co2, p_u_co2, p_v_co2 }, { p_x_co3,p_y_co3,p_z_co3 , p_u_co3, p_v_co3 }, p_x_co, p_y_co, p_z_co);
-                            //}
-                            //std::cout << UV_co[0] << " " << UV_co[1] << std::endl;
-                            //std::cout << "rere" << std::endl;
+                            std::vector<float> UV_co = to_UV({ p_x_co1,p_y_co1,p_z_co1, p_u_co1, p_v_co1 }, { p_x_co2,p_y_co2,p_z_co2, p_u_co2, p_v_co2}, { p_x_co3,p_y_co3,p_z_co3 , p_u_co3, p_v_co3}, p_x_co, p_y_co, p_z_co);
                             #pragma omp critical
                             {
                                 screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co] = { triangle[9],p_z_co, static_cast<int>(1000 * UV_co[0]), static_cast<int>(1000*UV_co[1])};
