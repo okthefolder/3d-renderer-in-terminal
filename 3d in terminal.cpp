@@ -4,6 +4,8 @@
 #include <ctime>
 #include <chrono>
 #include <thread>
+
+#define M_PI 3.14159265358979323846
 #include <cmath>
 #include <Windows.h>
 #include <algorithm>
@@ -67,9 +69,11 @@ int unique_blocks = 1;
 //for 12 (156,40)
 //for 7 (268,68)
 // for 5 (313, 80)
+// for 2 (940, 238)
+// for 3 (626,)
 //keep the numbers even
-const int characters_per_row = 940;
-const int number_of_columns = 238;
+const int characters_per_row = 626;
+const int number_of_columns = 150;
 float dy = 0;
 
 std::vector<char> characters = {
@@ -94,10 +98,10 @@ std::vector<std::vector<int>> dirtTexture = {
 
 
 float x_rotation = 0;
-float y_rotation = 0;
+float y_rotation = 0.001;
 float px = 1024 * 1024;
-float py = 8*16+32;
-float pz = 1024*1024;
+float py = 1024 * 1024+32;
+float pz = 1024 * 1024;
 
 uint64_t hashCoordinates(int x, int y) {
     // Combine the two integers into a single value using bitwise operations
@@ -247,21 +251,21 @@ std::vector<uint64_t> make_chunk(int cx, int cy, int cz) {
         for (int z=0; z < 16; z++) {
             int num1 = x;
             //int num2 = 0;
-            int num2 = 8*16-16*cy+(perlin_noise[x][z]+1) * 8;
+            int num2 = 1024 * 1024 -16*cy+(perlin_noise[x][z]+1) * 8;
             //num2 = 10 * 16;
             //if (perlin_noise[x][z] > 1 || perlin_noise[x][z] < -1) {
             //    std::cout << "esogs" << std::endl;
             //}
             int num3 = z;
             //std::cout << num2 << std::endl;
-            for (int i = 0; i < 1; i++) {
-                if (num2 + i < 16 && num2 + i >= 0) {
+            for (int i = 0; i < 100; i++) {
+                if (num2 - i < 16 && num2 - i >= 0) {
                 //std::cout << "eroiern" << std::endl;
                 //Sleep(5000);
                     //if (num1+cx*16 == 1024 * 1024 && num3+cz*16 == 1024 * 1024) {
                         //std::cout << "eroiern2" << std::endl;
                         //Sleep(5000);
-                        chunk[16 * num3 + num2 + i] |= (static_cast<uint64_t>(0b1111) << (4 * x));
+                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b1111) << (4 * x));
                     //}
                     //std::cout << chunk[16 * num3 + num2 + i] << std::endl;
                 }
@@ -758,7 +762,7 @@ bool compare_equality_on_midpoint(const std::vector<int>& a, const std::vector<i
     return ((mid_a[0] == mid_b[0]) && (mid_a[1] == mid_b[1]) && (mid_a[2] == mid_b[2]));
 }
 
-bool air_next_to(const std::unordered_map<std::tuple<int,int,int>, std::vector<uint64_t>, TupleHash, TupleEqual>& chunks, int x, int y, int z) {
+int air_next_to(const std::unordered_map<std::tuple<int,int,int>, std::vector<uint64_t>, TupleHash, TupleEqual>& chunks, int x, int y, int z) {
     int in_cx = (16 + x % 16) % 16;
     int in_cy = (16 + y % 16) % 16;
     int in_cz = (16 + z % 16) % 16;
@@ -771,11 +775,11 @@ bool air_next_to(const std::unordered_map<std::tuple<int,int,int>, std::vector<u
     
     if (it != chunks.end()) {
         const std::vector<uint64_t>& chunk = it->second;
-        return (((chunk[16 * in_cz + in_cy] >> (4 * in_cx)) & (static_cast<uint64_t> (0b1111))) == 0);
+        return (((chunk[16 * in_cz + in_cy] >> (4 * in_cx)) & (static_cast<uint64_t> (0b1111))));
         // Now you can work with 'chunk'
     }
     else {
-        return false;
+        return 0;
     } 
 }
 
@@ -788,24 +792,24 @@ std::vector<std::vector<int>> chunk_to_triangles(const std::unordered_map<std::t
     std::vector<std::vector<int>> triangles;
     std::vector<std::vector<int>> faces = {
         // Front face
-        {0, 1, 2,2},
-        {0, 3, 2,2},
+        {0, 1, 2,20},
+        {0, 3, 2,20},
 
         // Left face
-        {0, 4, 7,3},
-        {0, 3, 7,3},
+        {0, 4, 7,22},
+        {0, 3, 7,22},
 
         // Bottom face
-        {0, 1, 5,1},
-        {0, 4, 5,1},
+        {0, 1, 5,24},
+        {0, 4, 5,24},
 
         // Back face
-        {4, 5, 6,4},
-        {4, 7, 6,4},
+        {4, 5, 6,26},
+        {4, 7, 6,26},
 
         // Right face
-        {1, 5, 6,5},
-        {1, 2, 6,5},
+        {1, 5, 6,28},
+        {1, 2, 6,28},
 
         // Top face
         {3, 2, 6,30},
@@ -825,57 +829,76 @@ std::vector<std::vector<int>> chunk_to_triangles(const std::unordered_map<std::t
     */
 
     std::vector<std::vector<int>> UV_vertices = { {0,0},{1,0},{0,1},{1,1} };
-
+    
     for (std::vector<int> block : blocks) {
+        int block_type = air_next_to(chunks,block[0], block[1], block[2]);
        // std::cout << block[0] << " " << block[1] << " " << block[2] << std::endl;
         std::vector<std::vector<int>> vertices = make_cuboid(block[0], block[1], block[2], block[0] + 1, block[1] + 1, block[2] + 1);
-        if (air_next_to(chunks, block[0] - 1, block[1], block[2])) {
+        if (air_next_to(chunks, block[0] - 1, block[1], block[2])==0) {
             int UV_index = 0;
             for (int i = 2; i < 4; i++) {
                 std::vector<int> triangle = faces[i];
+                if (block_type == 0b1101) {
+                    triangle[3] -= 15;
+                }
                 triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1+UV_index][0],  UV_vertices[1+UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
                 UV_index++;
             }
         }
-        if (air_next_to(chunks, block[0] + 1, block[1], block[2])) {
+        if (air_next_to(chunks, block[0] + 1, block[1], block[2])==0) {
             int UV_index = 0;
             for (int i = 8; i < 10; i++) {
                 std::vector<int> triangle = faces[i];
+                if (block_type == 0b1101) {
+                    triangle[3] -= 15;
+                }
                 triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
                 UV_index++;
             }
         }
 
 
-        if (air_next_to(chunks, block[0], block[1]-1, block[2])) {
+        if (air_next_to(chunks, block[0], block[1]-1, block[2])==0) {
             int UV_index = 0;
             for (int i = 4; i < 6; i++) {
                 std::vector<int> triangle = faces[i];
+                if (block_type == 0b1101) {
+                    triangle[3] -= 15;
+                }
                 triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
                 UV_index++;
             }
         }
-        if (air_next_to(chunks, block[0], block[1] + 1, block[2])) {
+        if (air_next_to(chunks, block[0], block[1] + 1, block[2])==0) {
             int UV_index = 0;
             for (int i = 10; i < 12; i++) {
                 std::vector<int> triangle = faces[i];
+                if (block_type == 0b1101) {
+                    triangle[3] -= 15;
+                }
                 triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
                 UV_index++;
             }
         }
 
-        if (air_next_to(chunks, block[0], block[1], block[2] - 1)) {
+        if (air_next_to(chunks, block[0], block[1], block[2] - 1)==0) {
             int UV_index = 0;
             for (int i = 0; i < 2; i++) {
                 std::vector<int> triangle = faces[i];
+                if (block_type == 0b1101) {
+                    triangle[3] -= 15;
+                }
                 triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
                 UV_index++;
             }
         }
-        if (air_next_to(chunks, block[0], block[1], block[2] + 1)) {
+        if (air_next_to(chunks, block[0], block[1], block[2] + 1)==0) {
             int UV_index = 0;
             for (int i = 6; i < 8; i++) {
                 std::vector<int> triangle = faces[i];
+                if (block_type == 0b1101) {
+                    triangle[3] -= 15;
+                }
                 triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
                 UV_index++;
             }
@@ -1013,12 +1036,11 @@ void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n
     
 }
 
-
-
 void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& pz, float delta_time, std::vector<std::vector<int>> blocks) {
     float n_px = 0;
     float n_py = 0;
     float n_pz = 0;
+
     if (GetAsyncKeyState(VK_UP) & 0x8000 && y_rotation + 1 * delta_time<3.14/2) {
         y_rotation += 1 * delta_time;
     }
@@ -1053,6 +1075,7 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
         //n_py += 5 * delta_time;
     }
     if (GetAsyncKeyState('C') & 0x8000) {
+        Sleep(2000);
         n_py -= 5 * delta_time;
     }
 
@@ -1173,7 +1196,7 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(const std::unordere
                     //std::cout << "k" << std::endl;
                     for (int i = 0; i < 256; i++) {
                         for (int j = 0; j < 16; j++) {
-                            if (((chunk[i] >> 4 * j) & (0b1111)) != 0) {
+                            if (((chunk[i] >> 4 * j) & (static_cast<uint64_t>(0b1111))) != 0) {
                                 blocks.push_back({ 16 * (cx + lx) + j,(cy + ly) * 16 + i % 16,(cz + lz) * 16 + i / 16 });
                             }
                         }
@@ -1185,7 +1208,372 @@ std::vector<std::vector<int>> blocks_from_neighboring_chunks(const std::unordere
     return blocks;
 }
 
+float distance(const std::tuple<float, float, float>& p1, const std::tuple<float, float, float>& p2) {
+    float x1, y1, z1, x2, y2, z2;
+    std::tie(x1, y1, z1) = p1;
+    std::tie(x2, y2, z2) = p2;
+    return std::sqrt((x1 - x2) * (x1 - x2) +
+        (y1 - y2) * (y1 - y2) +
+        (z1 - z2) * (z1 - z2));
+}
 
+// Comparator function to sort based on distance to a given point
+bool compareDistance(const std::tuple<float, float, float>& p1, const std::tuple<float, float, float>& p2, const std::tuple<float, float, float>& ref) {
+    return distance(p1, ref) < distance(p2, ref);
+}
+
+bool rayIntersectsAABB(const std::tuple<float, float, float>& origin,
+    const std::tuple<float, float, float>& direction,
+    const std::tuple<float, float, float>& lowBound,
+    const std::tuple<float, float, float>& highBound) {
+    float tClose = -std::numeric_limits<float>::infinity();
+    float tFar = std::numeric_limits<float>::infinity();
+
+    float invDir = 1.0f / std::get<0>(direction);
+
+    float t1 = (std::get<0>(lowBound) - std::get<0>(origin)) * invDir;
+    float t2 = (std::get<0>(highBound) - std::get<0>(origin)) * invDir;
+
+    float tLow = min(t1, t2);
+    float tHigh = max(t1, t2);
+
+    tClose = max(tClose, tLow);
+    tFar = min(tFar, tHigh);
+
+    invDir = 1.0f / std::get<1>(direction);
+
+    t1 = (std::get<1>(lowBound) - std::get<1>(origin)) * invDir;
+    t2 = (std::get<1>(highBound) - std::get<1>(origin)) * invDir;
+
+    tLow = min(t1, t2);
+    tHigh = max(t1, t2);
+
+    tClose = max(tClose, tLow);
+    tFar = min(tFar, tHigh);
+
+    invDir = 1.0f / std::get<2>(direction);
+
+    t1 = (std::get<2>(lowBound) - std::get<2>(origin)) * invDir;
+    t2 = (std::get<2>(highBound) - std::get<2>(origin)) * invDir;
+
+    tLow = min(t1, t2);
+    tHigh = max(t1, t2);
+
+    tClose = max(tClose, tLow);
+    tFar = min(tFar, tHigh);
+
+    // Check if the ray intersects the AABB
+    if (tClose <= tFar) {
+        // Intersection point along the ray
+        return true;
+    }
+
+    return false;
+}bool rayIntersectsCube(const std::tuple<float, float, float>& origin, const std::tuple<float, float, float>& direction, const std::tuple<float, float, float>& p1, const std::tuple<float, float, float>& p2) {
+    const std::tuple<float, float, float> minPoint = std::make_tuple(min(std::get<0>(p1), std::get<0>(p2)), min(std::get<1>(p1), std::get<1>(p2)), min(std::get<2>(p1), std::get<2>(p2)));
+    const std::tuple<float, float, float> maxPoint = std::make_tuple(max(std::get<0>(p1), std::get<0>(p2)), max(std::get<1>(p1), std::get<1>(p2)), max(std::get<2>(p1), std::get<2>(p2)));
+    float tmin = -std::numeric_limits<float>::infinity();
+    float tmax = std::numeric_limits<float>::infinity();
+
+    float t0 = (std::get<0>(minPoint) - std::get<0>(origin)) / std::get<0>(direction);
+    float t1 = (std::get<0>(maxPoint) - std::get<0>(origin)) / std::get<0>(direction);
+    if (t0 > t1) {
+        std::swap(t0, t1);
+    }
+    tmin = max(tmin, t0);
+    tmax = min(tmax, t1);
+    if (tmin > tmax) {
+        return false;
+    }
+
+    t0 = (std::get<1>(minPoint) - std::get<1>(origin)) / std::get<1>(direction);
+    t1 = (std::get<1>(maxPoint) - std::get<1>(origin)) / std::get<1>(direction);
+    if (t0 > t1) {
+        std::swap(t0, t1);
+    }
+    tmin = max(tmin, t0);
+    tmax = min(tmax, t1);
+    if (tmin > tmax) {
+        return false;
+    }
+
+    t0 = (std::get<2>(minPoint) - std::get<2>(origin)) / std::get<2>(direction);
+    t1 = (std::get<2>(maxPoint) - std::get<2>(origin)) / std::get<2>(direction);
+    if (t0 > t1) {
+        std::swap(t0, t1);
+    }
+    tmin = max(tmin, t0);
+    tmax = min(tmax, t1);
+    if (tmin > tmax) {
+        return false;
+    }
+
+    return true;
+}
+
+int get_block(int x, int y, int z, std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks) {
+    //std::cout << x << " " << y << " " << z << std::endl;
+    std::tuple<int, int, int> key = std::make_tuple(x/16, y/16, z/16);
+    auto it = map_chunks.find(key);
+    if (it != map_chunks.end()) {
+        const std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+        //std::cout << chunk.size() << std::endl;
+        int cx = (16 + x % 16) % 16;
+        int cy = (16 + y % 16) % 16;
+        int cz = (16 + z % 16) % 16;
+        
+        if (((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) == 0) {
+            return 0;
+        }
+        else {
+            //std::cout << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+            return ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111)));
+        }
+    }
+    else {
+        return 0;
+    }
+}
+
+std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, float x_rotation, float y_rotation, float px, float py, float pz) {
+    float a;
+    
+    if (cos(x_rotation)>0) {
+        a = 1;
+    }
+    else{
+        a = -1;
+    }
+    float b = tan(y_rotation);
+    float c = a*tan(x_rotation);
+    
+    float magnitude = std::sqrt(a * a + c * c);
+    a /= magnitude;
+    //b /= magnitude;
+    c /= magnitude;
+
+    //a = cos(x_rotation);
+    //b = sin(x_rotation);
+
+    std::vector<std::tuple<int, int, int>> possible_blocks = { std::make_tuple(0,0,0) };
+    float step_size = 0.001;
+    for (int i = 0; i < 5000;i++) {
+        float t = i * step_size;
+        float x = px + t * a;
+        float y = py + t * b;
+        float z = pz + t * c;
+        //get_block(x, y, z, map_chunks) != 0 && 
+        if (!(std::get<0>(possible_blocks[possible_blocks.size()-1]) == floor(x) && std::get<1>(possible_blocks[possible_blocks.size() - 1]) == floor(y) && std::get<2>(possible_blocks[possible_blocks.size() - 1]) == floor(z))) {
+            possible_blocks.push_back(std::make_tuple(x, y, z));
+        }
+    }
+    possible_blocks.erase(possible_blocks.begin());
+    
+    /*std::cout << fmod(x_rotation, 2 * 3.14159) << std::endl;
+    std::vector < std::tuple<int, int, int>> possible_blocks;
+
+    std::tuple<float, float, float> direction = std::make_tuple(a, b, c);
+    std::tuple<float, float, float> origin = std::make_tuple(px, py, pz);
+
+    std::cout << a << " " << b << " " << c << std::endl;
+    int dx = 0;
+    
+    if (cos(x_rotation)>=0) {
+        dx = 1;
+    }
+    else {
+        dx = -1;
+    }
+    int dy = 0;
+    if (y_rotation > 0) {
+        dy = 1;
+    }
+    else {
+        dy = -1;
+    }
+    int dz = 0;
+    if (sin(x_rotation) >= 0) {
+        dz = 1;
+    }
+    else {
+        dz = -1;
+    }
+
+
+
+
+    float sx = 0;
+    float sy = 0;
+    float sz = 0;
+    std::cout << "direction " << a << " " << b << " " << c << std::endl;
+    std::cout << "d's: " << dx << " " << dy << " " << dz << std::endl;
+    std::vector<std::tuple<float, float, float>> traversed_blocks;
+
+    if (rayIntersectsCube(origin, direction, std::make_tuple(sx, sy, sz), std::make_tuple(sx + 1 * dx, sy + 1 * dy, sz + 1 * dz))) {
+        std::cout << "ray_start_intersects" << std::endl;
+    }
+
+
+
+
+    float sx = floor(px);
+    float sy = floor(py);
+    float sz = floor(pz);
+    if (rayIntersectsCube(origin, direction, std::make_tuple(sx + 1, sy, sz), std::make_tuple(sx + 2, sy + 1, sz + 1))) {
+        std::cout << 1 << " " << 0 << " " << 0 << std::endl;
+    }
+    if (rayIntersectsCube(origin, direction, std::make_tuple(sx-1, sy, sz), std::make_tuple(sx, sy + 1, sz + 1))) {
+        std::cout << -1 << " " << 0 << " " << 0 << std::endl;
+    }
+    if (rayIntersectsCube(origin, direction, std::make_tuple(sx, sy+1, sz), std::make_tuple(sx + 1, sy + 2, sz + 1))) {
+        std::cout << 0 << " " << 1 << " " << 0 << std::endl;
+    }
+    if (rayIntersectsCube(origin, direction, std::make_tuple(sx, sy-1, sz), std::make_tuple(sx + 1, sy, sz + 1))) {
+        std::cout << 0 << " " << -1 << " " << 0 << std::endl;
+    }
+    if (rayIntersectsCube(origin, direction, std::make_tuple(sx, sy, sz+1), std::make_tuple(sx + 1, sy + 1, sz + 2))) {
+        std::cout << 0 << " " << 0 << " " << 1 << std::endl;
+    }
+    if (rayIntersectsCube(origin, direction, std::make_tuple(sx, sy, sz-1), std::make_tuple(sx + 1, sy +1, sz))) {
+        std::cout << 0 << " " << 0 << " " << -1 << std::endl;
+    }
+
+
+
+    float sx = static_cast<int>(px);
+    float sy = static_cast<int>(py);
+    float sz = static_cast<int>(pz);
+    for (int loop_x = -5; loop_x <= 5; loop_x++) {
+        for (int loop_y = -5; loop_y <= 5; loop_y++) {
+            for (int loop_z = -5; loop_z <= 5; loop_z++) {
+                //std::cout << loop_x<<" "<<loop_y << " "<<loop_z << " " << std::endl;
+                //if (rayIntersectsAABB(origin, direction, std::make_tuple(sx + loop_x, sy + loop_y, sz + loop_z), std::make_tuple(sx + loop_x + 1, sy + loop_y + 1, sz + loop_z + 1)) && get_block(sx + loop_x, sy + loop_y, sz + loop_z, map_chunks) != 0) {
+                if (rayIntersectsAABB(origin, direction, std::make_tuple(sx + loop_x, sy + loop_y, sz + loop_z), std::make_tuple(sx + loop_x + 1, sy + loop_y + 1, sz + loop_z + 1))){
+                    possible_blocks.push_back(std::make_tuple(sx + loop_x, sy + loop_y, sz + loop_z));
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < 20; i++) {
+        
+        if (rayIntersectsCube(origin, direction, std::make_tuple(sx + dx, sy, sz), std::make_tuple(sx + (1+dx), sy + 1 * dy, sz + 1 * dz))) {
+            traversed_blocks.push_back(std::make_tuple(sx + dx, sy, sz));
+            if (get_block(sx + dx, sy, sz, map_chunks)) {
+                possible_blocks.push_back(std::make_tuple(sx + dx, sy, sz));
+            }
+            sx+=dx;
+        }
+        else if (rayIntersectsCube(origin, direction, std::make_tuple(sx, sy + dy, sz), std::make_tuple(sx + 1 * dx, sy + (1 + dy), sz + 1 * dz))) {
+            traversed_blocks.push_back(std::make_tuple(sx, sy + dy, sz));
+            if (get_block(sx, sy + dy, sz, map_chunks)) {
+                possible_blocks.push_back(std::make_tuple(sx, sy + dy, sz));
+            }
+            sy+=dy;
+        }
+        else if (rayIntersectsCube(origin, direction, std::make_tuple(sx, sy, sz + dz), std::make_tuple(sx + 1*dx, sy + 1*dy, sz + (1+dz)))) {
+            traversed_blocks.push_back(std::make_tuple(sx, sy, sz + dz));
+            if (get_block(sx, sy, sz + dz, map_chunks)) {
+                possible_blocks.push_back(std::make_tuple(sx, sy, sz + dz));
+            }
+            sz+=dz;
+        }
+    }*/
+    /*std::tuple<float, float, float> reference = std::make_tuple(px, py, pz);
+    std::sort(possible_blocks.begin(), possible_blocks.end(), [&reference](const std::tuple<float, float, float>& p1, const std::tuple<float, float, float>& p2) {
+        return compareDistance(p1, p2, reference);
+        });*/
+    for (auto ty : possible_blocks) {
+        int x;
+        int y;
+        int z;
+        std::tie(x, y, z) = ty;
+        std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
+        std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+        //std::cout << "chunk size" << chunk.size() << std::endl;
+        int cx = (16 + x % 16) % 16;
+        int cy = (16 + y % 16) % 16;
+        int cz = (16 + z % 16) % 16;
+        //std::cout <<"traversed block: " << x << " " << y << " " << z << " " << get_block(x, y, z, map_chunks) <<" "<< ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+        if (get_block(x, y, z, map_chunks)!=0) {
+            for (int i = 0; i < 10; i++) {
+                std::cout << x << " " << y << " " << z << std::endl;
+            }
+            std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
+            std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+            //std::cout << "chunk size" << chunk.size() << std::endl;
+            int cx = (16 + x % 16) % 16;
+            int cy = (16 + y % 16) % 16;
+            int cz = (16 + z % 16) % 16;
+            //std::cout << "is block" << get_block(x, y, z, map_chunks) << std::endl;
+            //std::cout << "block" << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+            chunk[16 * cz + cy] &= ~(static_cast<uint64_t>(0b1111) << (4 * cx));
+            //std::cout << "block" << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+            //Sleep(100);
+            return std::make_tuple(x, y, z);
+        }
+    }
+    return std::make_tuple(0, 0, 0);
+    /*if (possible_blocks.size() != 0) {
+        std::cout << "y_rotation" << y_rotation << std::endl;
+        std::tuple<float, float, float> reference = std::make_tuple(px, py, pz);
+        /*std::sort(possible_blocks.begin(), possible_blocks.end(), [&reference](const std::tuple<float, float, float>& p1, const std::tuple<float, float, float>& p2) {
+            return compareDistance(p1, p2, reference);
+            });
+            
+        for (std::tuple<int,int,int> ty : possible_blocks) {
+            int x;
+            int y;
+            int z;
+            std::tie(x, y, z) = ty;
+            std::cout << x << " " << y << " " << z << std::endl;
+            
+            if (get_block(x, y, z, map_chunks)) {
+                for (int i = 0; i < 100; i++) {
+                    std::cout << x-px << " " << y-py << " " << z-pz << std::endl;
+                }
+                std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
+                std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+                std::cout << "chunk size" << chunk.size() << std::endl;
+                int cx = (16 + x % 16) % 16;
+                int cy = (16 + y % 16) % 16;
+                int cz = (16 + z % 16) % 16;
+                std::cout << "is block" << get_block(x, y, z, map_chunks) << std::endl;
+                std::cout << "block" << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+                chunk[16 * cz + cy] &= ~(static_cast<uint64_t>(0b0010) << (4 * cx));
+                std::cout << "block" << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+                //Sleep(500);
+                return std::make_tuple(x, y, z);
+            }
+            else {
+                return std::make_tuple(0, 0, 0);
+            }
+        }
+        /*std::cout << "size" << possible_blocks.size() << std::endl;
+        int x, y, z;
+        std::tie(x, y, z) = possible_blocks[0];
+        std::cout << "p:" << static_cast<int>(px) << " " << static_cast<int>(py) << " " << static_cast<int>(pz) << std::endl;
+        std::cout << "b: " << x << " " << y << " " << z << std::endl;
+        //Sleep(100000);
+        std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
+        std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+        std::cout << "chunk size" << chunk.size() << std::endl;
+        int cx = (16 + x % 16) % 16;
+        int cy = (16 + y % 16) % 16;
+        int cz = (16 + z % 16) % 16;
+        std::cout << "is block" << get_block(x, y, z, map_chunks) << std::endl;
+        std::cout << "block" << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+        chunk[16 * cz + cy] &= ~(static_cast<uint64_t>(0b0010) << (4 * cx));
+        std::cout << "block" << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+        //Sleep(500);
+        return std::make_tuple(x, y, z);
+    }
+    else {
+        return std::make_tuple(0, 0, 0);
+    }*/
+    //Sleep(100);
+    
+}
 
 int main() {
     std::vector<std::vector<int>> screen(characters_per_row * number_of_columns);
@@ -1193,7 +1581,7 @@ int main() {
     std::unordered_map<std::tuple<int, int, int>, std::vector<std::vector<int>>, TupleHash, TupleEqual> map_triangles;
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
-    int render_distance = 2;
+    int render_distance = 4;
     while (true) {
         for (int x = -render_distance; x <= render_distance; x++) {
             for (int y = -render_distance; y <= render_distance; y++) {
@@ -1241,10 +1629,95 @@ int main() {
         last_time = current_time;
         float delta_time = delta_seconds.count();
         std::cout << delta_time << '\n';
-        controls(x_rotation, y_rotation,px,py,pz, delta_time, blocks_from_neighboring_chunks(map_chunks,px,py,pz));
+        std::tuple<int,int,int> key2=block_breaking(map_chunks, M_PI /2-x_rotation, y_rotation, px, py, pz);
+        int x2, y2, z2;
+        std::tie(x2, y2, z2) = key2;
+        std::tuple<int, int, int> key = std::make_tuple(x2 / 16, y2 / 16, z2 / 16);
+        if (map_chunks.find(key) != map_chunks.end()) {
+            std::vector<uint64_t> chunk = map_chunks.find(key)->second;
+            int x, y, z;
+            std::tie(x, y, z) = key;
+            int cx = (16 + x % 16) % 16;
+            int cy = (16 + y % 16) % 16;
+            int cz = (16 + z % 16) % 16;
+            //std::cout << "blockkkkkkk" << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
+            //Sleep(500);
+        }
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
+        if (map_triangles.find(key) != map_triangles.end()) {
+            int x, y, z;
+            std::tie(x, y, z) = key;
+            for (int x0 = -1; x0 <= 1; x0++) {
+                for (int y0 = -1; y0 <= 1; y0++) {
+                    for (int z0 = -1; z0 <= 1; z0++) {
+                        std::tuple<int, int, int> key0 = std::make_tuple(x + x0, y + y0, z + z0);
+                        map_triangles[key0] = chunk_to_triangles(map_chunks, x+x0, y+y0, z+z0);
+                    }
+                }
+            }
+        }
+        //std::cout << "reienin" << std::endl;
+        controls(x_rotation, y_rotation,px,py,pz, min(0.5,delta_time), blocks_from_neighboring_chunks(map_chunks,px,py,pz));
         update_screen(screen, map_triangles, x_rotation, y_rotation, px, py, pz);
-        std::cout << "s" << std::endl;
+        //std::cout << "s" << std::endl;
         draw_screen(screen);
+        
     }
 
     return 0;
