@@ -54,9 +54,26 @@ struct TupleHash {
     }
 };
 
+struct TupleHash2 {
+    template <typename T, typename U>
+    std::size_t operator()(const std::tuple<T, U>& t) const {
+        auto hash1 = std::hash<T>{}(std::get<0>(t));
+        auto hash2 = std::hash<U>{}(std::get<1>(t));
+        return hash1 ^ hash2;
+        //return ((std::get<0>(t) << 4) | std::get<1>(t));
+    }
+};
+
 struct TupleEqual {
     template <typename T, typename U, typename V>
     bool operator()(const std::tuple<T, U, V>& t1, const std::tuple<T, U, V>& t2) const {
+        return t1 == t2;
+    }
+};
+
+struct TupleEqual2 {
+    template <typename T, typename U>
+    bool operator()(const std::tuple<T, U>& t1, const std::tuple<T, U>& t2) const {
         return t1 == t2;
     }
 };
@@ -298,23 +315,24 @@ std::vector<uint64_t> make_chunk(int cx, int cy, int cz) {
     }
 }*/
 
-std::vector<std::vector<int>> make_cuboid(int x1, int y1, int z1, int x2, int y2, int z2) {
-    std::vector<std::vector<int>> vertices;
+void make_cuboid(std::vector<std::vector<int>>& vertices, const int& x1, const int& y1, const int& z1, const int& x2, const int& y2, const int& z2) {
+    //std::vector<std::vector<int>> vertices;
     // Define the eight vertices of the cuboid
-    vertices.push_back({ x1, y1, z1 }); // 0
+    /*vertices.push_back({x1, y1, z1}); // 0
     vertices.push_back({ x2, y1, z1 }); // 1
     vertices.push_back({ x2, y2, z1 }); // 2
     vertices.push_back({ x1, y2, z1 }); // 3
     vertices.push_back({ x1, y1, z2 }); // 4
     vertices.push_back({ x2, y1, z2 }); // 5
     vertices.push_back({ x2, y2, z2 }); // 6
-    vertices.push_back({ x1, y2, z2 }); // 7
+    vertices.push_back({ x1, y2, z2 }); // 7*/
+    vertices = { { x1, y1, z1 } ,{ x2, y1, z1 },{ x2, y2, z1 },{ x1, y2, z1 },{ x1, y1, z2 }, { x2, y1, z2 },{ x2, y2, z2 },{ x1, y2, z2 } };
 
-    return vertices;
+    //return vertices;
 
 }
 
-void cuboid_to_vertices(std::vector<std::vector<int>>& points){
+/*void cuboid_to_vertices(std::vector<std::vector<int>>& points) {
     std::vector<std::vector<int>> vertices;
     for (std::vector<int> p : points) {
         for (std::vector<int> vertice : make_cuboid(p[0], p[1], p[2], p[3], p[4], p[5])) {
@@ -322,7 +340,7 @@ void cuboid_to_vertices(std::vector<std::vector<int>>& points){
         }
     }
     points = vertices;
-}
+}*/
 
 void add_rotation(float x_rotation, float y_rotation, float& x_co, float& y_co, float& z_co){
     float new_x_co = x_co*std::cos(x_rotation)-z_co*std::sin(x_rotation);
@@ -784,12 +802,109 @@ int air_next_to(const std::unordered_map<std::tuple<int,int,int>, std::vector<ui
 }
 
 //chunks[256 * chunk_z + 16 * chunk_y + chunk_x][chunk_block_index] |= (static_cast<uint64_t>(block[3]) << (4 * block_chunk_x));
+void block_to_triangles(std::unordered_map<std::tuple<int, int>, std::vector<int>, TupleHash2, TupleEqual2>& triangles, std::vector<int> block, const std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& chunks, const std::vector<std::vector<int>>& faces, const std::vector<std::vector<int>>& UV_vertices, const std::vector<std::vector<int>>& vertices) {
+    int block_type = air_next_to(chunks, block[0], block[1], block[2]);
+    if (air_next_to(chunks, block[0] - 1, block[1], block[2]) == 0) {
+        int UV_index = 0;
+        for (int i = 2; i < 4; i++) {
+            std::vector<int> triangle = faces[i];
+            if (block_type == 0b1101) {
+                triangle[3] -= 15;
+            }
+            if (block_type != 0) {
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = { block[0] + vertices[triangle[0]][0], block[1] + vertices[triangle[0]][1], block[2] + vertices[triangle[0]][2], block[0] + vertices[triangle[1]][0], block[1] + vertices[triangle[1]][1], block[2] + vertices[triangle[1]][2], block[0] + vertices[triangle[2]][0], block[1] + vertices[triangle[2]][1], block[2] + vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] };
+            }
+            else {
+                triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
+            }
+            UV_index++;
+        }
+    }
+    if (air_next_to(chunks, block[0] + 1, block[1], block[2]) == 0) {
+        int UV_index = 0;
+        for (int i = 8; i < 10; i++) {
+            std::vector<int> triangle = faces[i];
+            if (block_type == 0b1101) {
+                triangle[3] -= 15;
+            }
+            if (block_type != 0) {
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = { block[0] + vertices[triangle[0]][0], block[1] + vertices[triangle[0]][1], block[2] + vertices[triangle[0]][2], block[0] + vertices[triangle[1]][0], block[1] + vertices[triangle[1]][1], block[2] + vertices[triangle[1]][2], block[0] + vertices[triangle[2]][0], block[1] + vertices[triangle[2]][1], block[2] + vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] };
+            }
+            else {
+                triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
+            }            UV_index++;
+        }
+    }
 
-std::vector<std::vector<int>> chunk_to_triangles(const std::unordered_map<std::tuple<int,int,int>, std::vector<uint64_t>, TupleHash, TupleEqual>& chunks, int cx,int cy,int cz) {
+
+    if (air_next_to(chunks, block[0], block[1] - 1, block[2]) == 0) {
+        int UV_index = 0;
+        for (int i = 4; i < 6; i++) {
+            std::vector<int> triangle = faces[i];
+            if (block_type == 0b1101) {
+                triangle[3] -= 15;
+            }
+            if (block_type != 0) {
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = { block[0] + vertices[triangle[0]][0], block[1] + vertices[triangle[0]][1], block[2] + vertices[triangle[0]][2], block[0] + vertices[triangle[1]][0], block[1] + vertices[triangle[1]][1], block[2] + vertices[triangle[1]][2], block[0] + vertices[triangle[2]][0], block[1] + vertices[triangle[2]][1], block[2] + vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] };
+            }
+            else {
+                triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
+            }            UV_index++;
+        }
+    }
+    if (air_next_to(chunks, block[0], block[1] + 1, block[2]) == 0) {
+        int UV_index = 0;
+        for (int i = 10; i < 12; i++) {
+            std::vector<int> triangle = faces[i];
+            if (block_type == 0b1101) {
+                triangle[3] -= 15;
+            }
+            if (block_type != 0) {
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = { block[0] + vertices[triangle[0]][0], block[1] + vertices[triangle[0]][1], block[2] + vertices[triangle[0]][2], block[0] + vertices[triangle[1]][0], block[1] + vertices[triangle[1]][1], block[2] + vertices[triangle[1]][2], block[0] + vertices[triangle[2]][0], block[1] + vertices[triangle[2]][1], block[2] + vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] };
+            }
+            else {
+                triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
+            }            UV_index++;
+        }
+    }
+
+    if (air_next_to(chunks, block[0], block[1], block[2] - 1) == 0) {
+        int UV_index = 0;
+        for (int i = 0; i < 2; i++) {
+            std::vector<int> triangle = faces[i];
+            if (block_type == 0b1101) {
+                triangle[3] -= 15;
+            }
+            if (block_type != 0) {
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = { block[0] + vertices[triangle[0]][0], block[1] + vertices[triangle[0]][1], block[2] + vertices[triangle[0]][2], block[0] + vertices[triangle[1]][0], block[1] + vertices[triangle[1]][1], block[2] + vertices[triangle[1]][2], block[0] + vertices[triangle[2]][0], block[1] + vertices[triangle[2]][1], block[2] + vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] };
+            }
+            else {
+                triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
+            }            UV_index++;
+        }
+    }
+    if (air_next_to(chunks, block[0], block[1], block[2] + 1) == 0) {
+        int UV_index = 0;
+        for (int i = 6; i < 8; i++) {
+            std::vector<int> triangle = faces[i];
+            if (block_type == 0b1101) {
+                triangle[3] -= 15;
+            }
+            if (block_type != 0) {
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = { block[0] + vertices[triangle[0]][0], block[1] + vertices[triangle[0]][1], block[2] + vertices[triangle[0]][2], block[0] + vertices[triangle[1]][0], block[1] + vertices[triangle[1]][1], block[2] + vertices[triangle[1]][2], block[0] + vertices[triangle[2]][0], block[1] + vertices[triangle[2]][1], block[2] + vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] };
+            }
+            else {
+                triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
+            }            UV_index++;
+        }
+    }
+}
+
+std::unordered_map<std::tuple<int, int>, std::vector<int>, TupleHash2, TupleEqual2> chunk_to_triangles(const std::unordered_map<std::tuple<int,int,int>, std::vector<uint64_t>, TupleHash, TupleEqual>& chunks, int cx,int cy,int cz) {
     std::vector<std::vector<int>> blocks=blocks_from_chunk(chunks, cx, cy, cz);
     //std::cout << blocks.size() << std::endl;;
     //std::cout << "tytyt" << std::endl;
-    std::vector<std::vector<int>> triangles;
+    std::unordered_map<std::tuple<int, int>, std::vector<int>, TupleHash2, TupleEqual2> triangles;
     std::vector<std::vector<int>> faces = {
         // Front face
         {0, 1, 2,20},
@@ -815,112 +930,51 @@ std::vector<std::vector<int>> chunk_to_triangles(const std::unordered_map<std::t
         {3, 2, 6,30},
         {3, 7, 6,30}
     };
-
-    /*
-    how vertices are defined
-    vertices.push_back({ x1, y1, z1 }); // 0
-    vertices.push_back({ x2, y1, z1 }); // 1
-    vertices.push_back({ x2, y2, z1 }); // 2
-    vertices.push_back({ x1, y2, z1 }); // 3
-    vertices.push_back({ x1, y1, z2 }); // 4
-    vertices.push_back({ x2, y1, z2 }); // 5
-    vertices.push_back({ x2, y2, z2 }); // 6
-    vertices.push_back({ x1, y2, z2 }); // 7
-    */
+    std::vector<std::vector<int>> vertices = {
+        {0,0,0},
+        {1,0,0},
+        {1,1,0},
+        {0,1,0},
+        {0,0,1},
+        {1,0,1},
+        {1,1,1},
+        {0,1,1},
+    };
 
     std::vector<std::vector<int>> UV_vertices = { {0,0},{1,0},{0,1},{1,1} };
-    
+    //std::vector<std::vector<int>> vertices(8, std::vector<int>(3));
     for (std::vector<int> block : blocks) {
-        int block_type = air_next_to(chunks,block[0], block[1], block[2]);
-       // std::cout << block[0] << " " << block[1] << " " << block[2] << std::endl;
-        std::vector<std::vector<int>> vertices = make_cuboid(block[0], block[1], block[2], block[0] + 1, block[1] + 1, block[2] + 1);
-        if (air_next_to(chunks, block[0] - 1, block[1], block[2])==0) {
-            int UV_index = 0;
-            for (int i = 2; i < 4; i++) {
-                std::vector<int> triangle = faces[i];
-                if (block_type == 0b1101) {
-                    triangle[3] -= 15;
-                }
-                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1+UV_index][0],  UV_vertices[1+UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
-                UV_index++;
-            }
-        }
-        if (air_next_to(chunks, block[0] + 1, block[1], block[2])==0) {
-            int UV_index = 0;
-            for (int i = 8; i < 10; i++) {
-                std::vector<int> triangle = faces[i];
-                if (block_type == 0b1101) {
-                    triangle[3] -= 15;
-                }
-                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
-                UV_index++;
-            }
-        }
-
-
-        if (air_next_to(chunks, block[0], block[1]-1, block[2])==0) {
-            int UV_index = 0;
-            for (int i = 4; i < 6; i++) {
-                std::vector<int> triangle = faces[i];
-                if (block_type == 0b1101) {
-                    triangle[3] -= 15;
-                }
-                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
-                UV_index++;
-            }
-        }
-        if (air_next_to(chunks, block[0], block[1] + 1, block[2])==0) {
-            int UV_index = 0;
-            for (int i = 10; i < 12; i++) {
-                std::vector<int> triangle = faces[i];
-                if (block_type == 0b1101) {
-                    triangle[3] -= 15;
-                }
-                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
-                UV_index++;
-            }
-        }
-
-        if (air_next_to(chunks, block[0], block[1], block[2] - 1)==0) {
-            int UV_index = 0;
-            for (int i = 0; i < 2; i++) {
-                std::vector<int> triangle = faces[i];
-                if (block_type == 0b1101) {
-                    triangle[3] -= 15;
-                }
-                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
-                UV_index++;
-            }
-        }
-        if (air_next_to(chunks, block[0], block[1], block[2] + 1)==0) {
-            int UV_index = 0;
-            for (int i = 6; i < 8; i++) {
-                std::vector<int> triangle = faces[i];
-                if (block_type == 0b1101) {
-                    triangle[3] -= 15;
-                }
-                triangles.push_back({ vertices[triangle[0]][0], vertices[triangle[0]][1], vertices[triangle[0]][2], vertices[triangle[1]][0], vertices[triangle[1]][1], vertices[triangle[1]][2], vertices[triangle[2]][0], vertices[triangle[2]][1], vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] });
-                UV_index++;
-            }
-        }
+        block_to_triangles(triangles, block, chunks, faces, UV_vertices, vertices);
+    }
+    if (triangles.size() != 0) {
+        //std::cout << triangles.size() << std::endl;
+        //Sleep(2);
     }
     return triangles;
+
 }
 
 
 
-void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_map<std::tuple<int, int, int>, std::vector<std::vector<int>>, TupleHash, TupleEqual>& map_triangles, float x_rotation, float y_rotation, float px, float py, float pz) {
+void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, std::vector<int>, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, float x_rotation, float y_rotation, float px, float py, float pz) {
     //std::cout << "screen" << std::endl;
     screen.assign(characters_per_row * number_of_columns, { 0, 1024 * 1024 * 1024,-1,-1 });
     int u = 0;
+    //std::cout << map_triangles.size() << std::endl;
+    for (std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, std::vector<int>, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>::const_iterator it = map_triangles.begin(); it != map_triangles.end(); ++it) {
+        const std::unordered_map<std::tuple<int, int>, std::vector<int>, TupleHash2, TupleEqual2>& triangles = it->second;
+        std::vector<std::tuple<int, int>> keys;
+        std::vector<std::vector<int>> vectors;
 
-    for (int i = 0; i < map_triangles.size(); ++i) {
-        std::unordered_map<std::tuple<int, int, int>, std::vector<std::vector<int>>, TupleHash, TupleEqual>::const_iterator Mtriangles = std::next(map_triangles.begin(), i); // Advance the iterator to position i
-        const std::vector<std::vector<int>>& triangles = Mtriangles->second;
+        for (const auto& entry : triangles) {
+            keys.push_back(entry.first);
+            vectors.push_back(entry.second);
+        }
+       // std::cout << vectors.size() << std::endl;
 #pragma omp parallel
 #pragma omp for
-        for (int j = 0; j < triangles.size(); ++j) {
-            const std::vector<int>& triangle = triangles[j];
+        for (int j = 0; j < vectors.size(); ++j) {
+            const std::vector<int>& triangle = vectors[j];
             //int thread_id = omp_get_thread_num();
             //printf("Thread %d executing iteration %d\n", thread_id);
             u++;
@@ -1497,7 +1551,7 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
         //std::cout <<"traversed block: " << x << " " << y << " " << z << " " << get_block(x, y, z, map_chunks) <<" "<< ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
         if (get_block(x, y, z, map_chunks)!=0) {
             for (int i = 0; i < 10; i++) {
-                std::cout << x << " " << y << " " << z << std::endl;
+                //std::cout << x << " " << y << " " << z << std::endl;
             }
             std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
             std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
@@ -1578,7 +1632,43 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
 int main() {
     std::vector<std::vector<int>> screen(characters_per_row * number_of_columns);
     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual> map_chunks;
-    std::unordered_map<std::tuple<int, int, int>, std::vector<std::vector<int>>, TupleHash, TupleEqual> map_triangles;
+    std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, std::vector<int>, TupleHash2, TupleEqual2>, TupleHash, TupleEqual> map_triangles;
+    std::vector<std::vector<int>> faces = {
+        // Front face
+        {0, 1, 2,20},
+        {0, 3, 2,20},
+
+        // Left face
+        {0, 4, 7,22},
+        {0, 3, 7,22},
+
+        // Bottom face
+        {0, 1, 5,24},
+        {0, 4, 5,24},
+
+        // Back face
+        {4, 5, 6,26},
+        {4, 7, 6,26},
+
+        // Right face
+        {1, 5, 6,28},
+        {1, 2, 6,28},
+
+        // Top face
+        {3, 2, 6,30},
+        {3, 7, 6,30}
+    };
+    std::vector<std::vector<int>> vertices = {
+        {0,0,0},
+        {1,0,0},
+        {1,1,0},
+        {0,1,0},
+        {0,0,1},
+        {1,0,1},
+        {1,1,1},
+        {0,1,1},
+    };
+    std::vector<std::vector<int>> UV_vertices = { {0,0},{1,0},{0,1},{1,1} };
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
     int render_distance = 4;
@@ -1598,11 +1688,11 @@ int main() {
                 }
             }
         }
-        for (int x = 1-render_distance; x <= render_distance-1; x++) {
+        for (int x = 1 - render_distance; x <= render_distance - 1; x++) {
             for (int y = 1-render_distance; y <= render_distance-1; y++) {
                 for (int z = 1-render_distance; z <= render_distance-1; z++) {
                     std::tuple<int, int, int> key = std::make_tuple(px / 16 + x, py / 16 + y, pz / 16 + z);
-                    std::unordered_map<std::tuple<int, int, int>, std::vector<std::vector<int>>, TupleHash, TupleEqual>::iterator it = map_triangles.find(key);
+                    std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, std::vector<int>, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>::iterator it = map_triangles.find(key);
                     if (it == map_triangles.end()) {
                         //std::vector<uint64_t> chunk = map_chunks[key];
                         map_triangles[key] = chunk_to_triangles(map_chunks, px / 16 + x, py / 16 + y, pz / 16 + z);
@@ -1632,8 +1722,19 @@ int main() {
         std::tuple<int,int,int> key2=block_breaking(map_chunks, M_PI /2-x_rotation, y_rotation, px, py, pz);
         int x2, y2, z2;
         std::tie(x2, y2, z2) = key2;
-        std::tuple<int, int, int> key = std::make_tuple(x2 / 16, y2 / 16, z2 / 16);
-        if (map_chunks.find(key) != map_chunks.end()) {
+        /*std::tuple<int, int, int> key = std::make_tuple(x2 / 16, y2 / 16, z2 / 16);
+        for (int i = 0; i < 12; ++i) {
+            auto& chunk_triangles = map_triangles[key];
+            std::tuple<int, int> key3 = std::make_tuple(((x2 % 16) | (y2 % 16 << 8) | (z2 % 16 << 16)), i);
+            chunk_triangles.erase(key3);
+        }*/
+        std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1}};
+        for (std::vector<int> block : blocks) {
+            auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
+            block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
+        }
+        
+        /*if (map_chunks.find(key) != map_chunks.end()) {
             std::vector<uint64_t> chunk = map_chunks.find(key)->second;
             int x, y, z;
             std::tie(x, y, z) = key;
@@ -1644,62 +1745,7 @@ int main() {
             //Sleep(500);
         }
         //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
 
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        // //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
         if (map_triangles.find(key) != map_triangles.end()) {
             int x, y, z;
             std::tie(x, y, z) = key;
@@ -1712,12 +1758,14 @@ int main() {
                 }
             }
         }
+        */
+
         //std::cout << "reienin" << std::endl;
         controls(x_rotation, y_rotation,px,py,pz, min(0.5,delta_time), blocks_from_neighboring_chunks(map_chunks,px,py,pz));
         update_screen(screen, map_triangles, x_rotation, y_rotation, px, py, pz);
         //std::cout << "s" << std::endl;
         draw_screen(screen);
-        
+        //px += 16;
     }
 
     return 0;
