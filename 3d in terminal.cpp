@@ -1629,6 +1629,62 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
     
 }
 
+std::tuple<int, int, int> block_placing(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, float x_rotation, float y_rotation, float px, float py, float pz) {
+    float a;
+
+    if (cos(x_rotation) > 0) {
+        a = 1;
+    }
+    else {
+        a = -1;
+    }
+    float b = tan(y_rotation);
+    float c = a * tan(x_rotation);
+
+    float magnitude = std::sqrt(a * a + c * c);
+    a /= magnitude;
+    //b /= magnitude;
+    c /= magnitude;
+
+    //a = cos(x_rotation);
+    //b = sin(x_rotation);
+
+    std::vector<std::tuple<int, int, int>> possible_blocks = { std::make_tuple(0,0,0) };
+    float step_size = 0.001;
+    for (int i = 0; i < 5000; i++) {
+        float t = i * step_size;
+        float x = px + t * a;
+        float y = py + t * b;
+        float z = pz + t * c;
+        //get_block(x, y, z, map_chunks) != 0 && 
+        if (!(std::get<0>(possible_blocks[possible_blocks.size() - 1]) == floor(x) && std::get<1>(possible_blocks[possible_blocks.size() - 1]) == floor(y) && std::get<2>(possible_blocks[possible_blocks.size() - 1]) == floor(z))) {
+            possible_blocks.push_back(std::make_tuple(x, y, z));
+        }
+    }
+    possible_blocks.erase(possible_blocks.begin());
+
+    for (int i = 0; i < possible_blocks.size()-1;++i) {
+        std::tuple<int, int, int>ty = possible_blocks[i+1];
+        int x;
+        int y;
+        int z;
+        std::tie(x, y, z) = ty;
+        std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
+        std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+        if (get_block(x, y, z, map_chunks) != 0) {
+            std::tie(x, y, z) = possible_blocks[i];
+            std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
+            std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+            int cx = (16 + x % 16) % 16;
+            int cy = (16 + y % 16) % 16;
+            int cz = (16 + z % 16) % 16;
+            chunk[16 * cz + cy] |= (static_cast<uint64_t>(0b1111) << (4 * cx));
+            return std::make_tuple(x, y, z);
+        }
+    }
+    return std::make_tuple(0, 0, 0);
+}
+
 int main() {
     std::vector<std::vector<int>> screen(characters_per_row * number_of_columns);
     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual> map_chunks;
@@ -1707,65 +1763,43 @@ int main() {
                 keysToRemove.push_back(co);
             }
         }
-
-        // Remove elements based on keysToRemove
         for (const auto& key : keysToRemove) {
             map_chunks.erase(key);
             map_triangles.erase(key);
         }
-        //std::cout << "bus" << std::endl;
         auto current_time = std::chrono::steady_clock::now();
         std::chrono::duration<float> delta_seconds = current_time - last_time;
         last_time = current_time;
         float delta_time = delta_seconds.count();
         std::cout << delta_time << '\n';
-        std::tuple<int,int,int> key2=block_breaking(map_chunks, M_PI /2-x_rotation, y_rotation, px, py, pz);
-        int x2, y2, z2;
-        std::tie(x2, y2, z2) = key2;
-        /*std::tuple<int, int, int> key = std::make_tuple(x2 / 16, y2 / 16, z2 / 16);
-        for (int i = 0; i < 12; ++i) {
-            auto& chunk_triangles = map_triangles[key];
-            std::tuple<int, int> key3 = std::make_tuple(((x2 % 16) | (y2 % 16 << 8) | (z2 % 16 << 16)), i);
-            chunk_triangles.erase(key3);
-        }*/
-        std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1}};
-        for (std::vector<int> block : blocks) {
-            auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
-            block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
-        }
-        
-        /*if (map_chunks.find(key) != map_chunks.end()) {
-            std::vector<uint64_t> chunk = map_chunks.find(key)->second;
-            int x, y, z;
-            std::tie(x, y, z) = key;
-            int cx = (16 + x % 16) % 16;
-            int cy = (16 + y % 16) % 16;
-            int cz = (16 + z % 16) % 16;
-            //std::cout << "blockkkkkkk" << ((chunk[16 * cz + cy] >> (4 * cx)) & (static_cast<uint64_t>(0b1111))) << std::endl;
-            //Sleep(500);
-        }
-        //UPDATE THIS SO THAT IT DOESNT NEED TO RE TRIANGLE THE WHOLE CHUNK
 
-        if (map_triangles.find(key) != map_triangles.end()) {
-            int x, y, z;
-            std::tie(x, y, z) = key;
-            for (int x0 = -1; x0 <= 1; x0++) {
-                for (int y0 = -1; y0 <= 1; y0++) {
-                    for (int z0 = -1; z0 <= 1; z0++) {
-                        std::tuple<int, int, int> key0 = std::make_tuple(x + x0, y + y0, z + z0);
-                        map_triangles[key0] = chunk_to_triangles(map_chunks, x+x0, y+y0, z+z0);
-                    }
-                }
+        //BLOCK BREAKING
+        if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
+            std::tuple<int, int, int> key2 = block_breaking(map_chunks, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
+            int x2, y2, z2;
+            std::tie(x2, y2, z2) = key2;
+            std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
+            for (std::vector<int> block : blocks) {
+                auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
+                block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
             }
         }
-        */
 
-        //std::cout << "reienin" << std::endl;
+        //BLOCK PLACING
+        if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) {
+            std::tuple<int, int, int> key2 = block_placing(map_chunks, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
+            int x2, y2, z2;
+            std::tie(x2, y2, z2) = key2;
+            std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
+            for (std::vector<int> block : blocks) {
+                auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
+                block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
+            }
+        }
+
         controls(x_rotation, y_rotation,px,py,pz, min(0.5,delta_time), blocks_from_neighboring_chunks(map_chunks,px,py,pz));
         update_screen(screen, map_triangles, x_rotation, y_rotation, px, py, pz);
-        //std::cout << "s" << std::endl;
         draw_screen(screen);
-        //px += 16;
     }
 
     return 0;
