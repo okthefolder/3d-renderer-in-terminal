@@ -195,14 +195,14 @@ std::vector<std::vector<int>> faces = {
     {3, 7, 6}
 };
 std::vector<std::vector<int>> vertices = {
-{0,0,0},
-{1,0,0},
-{1,1,0},
-{0,1,0},
-{0,0,1},
-{1,0,1},
-{1,1,1},
-{0,1,1},
+    {0,0,0},
+    {1,0,0},
+    {1,1,0},
+    {0,1,0},
+    {0,0,1},
+    {1,0,1},
+    {1,1,1},
+    {0,1,1},
 };
 
 uint64_t hashCoordinates(int x, int y) {
@@ -787,9 +787,7 @@ std::vector<std::vector<float>> rasterize( Point2 a, Point2 b, Point2 c) {
             }
             return rasterized;
     }
-    //std::cout << a.x << " " << a.y << " " << b.x << " " << b.y << " " << c.x << " "<<c.y <<"                      "<< 0.5 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) << std::endl;
-    //Sleep(100);
-    if (abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) == 0) {
+    if (abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) <= 2) {
         return { { a.x,a.y,a.z } };
     }
     rasterized.reserve(0.5 * abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)));
@@ -924,11 +922,43 @@ int air_next_to(const std::unordered_map<std::tuple<int,int,int>, std::vector<ui
 
 std::vector<int> triangle_decoder(int encoded_triangle) {
     int triangle_index = (encoded_triangle >> 12) & (0b1111);
+    /*for (int i = 0; i < 12; i++) {
+        std::vector<int> triangle_from_vertices = faces[i];
+        std::vector<int> vertex1 = vertices[triangle_from_vertices[0]];
+        std::vector<int> vertex2 = vertices[triangle_from_vertices[1]];
+        std::vector<int> vertex3 = vertices[triangle_from_vertices[2]];
+        std::cout << vertex1[0] << vertex1[1] << vertex1[2] << vertex2[0] << vertex2[1] << vertex2[2] << vertex3[0] << vertex3[1] << vertex3[2] << std::endl;
+    }
+    Sleep(100000);*/
+    
+    std::vector<int> vertex_data = {
+        0b000100110,
+        0b000010110,
+        0b000001011,
+        0b000010011,
+        0b000100101,
+        0b000001101,
+        0b001101111,
+        0b001011111,
+        0b100101111,
+        0b100110111,
+        0b010110111,
+        0b010011111
+    };
+
     std::vector<int> triangle_from_vertices = faces[triangle_index];
     std::vector<int> vertex1 = vertices[triangle_from_vertices[0]];
     std::vector<int> vertex2 = vertices[triangle_from_vertices[1]];
     std::vector<int> vertex3 = vertices[triangle_from_vertices[2]];
-    
+    vertex1[0] = (vertex_data[triangle_index] >> 0) & 1;
+    vertex1[1] = (vertex_data[triangle_index] >> 2) & 1;
+    vertex1[2] = (vertex_data[triangle_index] >> 3) & 1;
+    vertex1[3] = (vertex_data[triangle_index] >> 3) & 1;
+    vertex1[4] = (vertex_data[triangle_index] >> 4) & 1;
+    vertex1[5] = (vertex_data[triangle_index] >> 5) & 1;
+    vertex1[6] = (vertex_data[triangle_index] >> 6) & 1;
+    vertex1[7] = (vertex_data[triangle_index] >> 7) & 1;
+    vertex1[8] = (vertex_data[triangle_index] >> 8) & 1;
     int cube_x = (encoded_triangle>>0) & 0b1111;
     int cube_y = (encoded_triangle>>4) & 0b1111;
     int cube_z = (encoded_triangle>>8) & 0b1111;
@@ -1183,14 +1213,38 @@ void interpolate(Point2_ref& v1, const Point2 v2, float z) {
     v1.v = v1.v + t * (v2.v - v1.v);
 }
 
-void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, float x_rotation, float y_rotation, float px, float py, float pz) {
-    //std::cout << "screen" << std::endl;
-    //CLIP TRIANGLES TO POSITIVE Z
+void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, const float x_rotation, const float y_rotation, const float px, const float py, const float pz) {
     screen.assign(characters_per_row * number_of_columns, { 0, 1024 * 1024 * 1024,-1,-1 });
     int u = 0;
     std::vector<int> vectors;
     std::vector<std::tuple<int, int>> keys;
     std::vector<std::tuple<int, int, int>> chunk_coordinates;
+    std::vector<int> vertices {
+        //left
+        0b000001011,
+        0b000010011,
+
+        //front
+        0b000100110,
+        0b000010110,
+
+        //bottom
+        0b000100101,
+        0b000001101,
+
+        //right
+        0b100101111,
+        0b100110111,
+
+        //back
+        0b001101111,
+        0b001011111,
+
+        //top
+        0b010110111,
+        0b010011111
+    };
+
     for (std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>::const_iterator it = map_triangles.begin(); it != map_triangles.end(); ++it) {
         const std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>& triangles = it->second;
         std::tuple<int,int,int> key = it->first;
@@ -1203,10 +1257,9 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
             inside_2d_frustum(20, { x+16,y,z }, { px - 16 * sin(x_rotation),py,pz - 16 * cos(x_rotation) }, x_rotation) || 
             inside_2d_frustum(20, { x,y,z+16 }, { px - 16 * sin(x_rotation),py,pz - 16 * cos(x_rotation) }, x_rotation) || 
             inside_2d_frustum(20, { x+16,y,z+16 }, { px - 16 * sin(x_rotation),py,pz - 16 * cos(x_rotation) }, x_rotation)) {
-            vectors.reserve(triangles.size());
+            //vectors.reserve(triangles.size());
             for (const auto& entry : triangles) {
                 chunk_coordinates.push_back(std::make_tuple(x, y, z));
-                keys.push_back(entry.first);
                 vectors.push_back(entry.second);
             }
         }
@@ -1230,15 +1283,15 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                 float x, y, z;
                 std::tie(x, y, z) = chunk_coordinates[j*number_of_threads+k];
                 const int& triangle2 = vectors[j * number_of_threads + k];
-                std::vector<int> triangle = triangle_decoder(triangle2);
+                /*std::vector<int> triangle = triangle_decoder(triangle2);
+                
                 for (int i = 0; i < 3; i++) {
                     triangle[3 * i+0] += x;
                     triangle[3 * i+1] += y;
                     triangle[3 * i+2] += z;
 
-                }
+                }*/
                 Point3 triangle_normal = { 0,0,0 };
-                //std::cout << std::get<1>(keys[j*number_of_threads+k]) << std::endl;
                 switch (std::get<1>(keys[j * number_of_threads + k])) {
                     case 0:
                         triangle_normal = {0,0,-1};
@@ -1278,11 +1331,23 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                         break;
 
                 }
-                //CLIP TRIANGLES TO POSITIVE Z
-                //CLIP TRIANGLES TO POSITIVE Z
-                //CLIP TRIANGLES TO POSITIVE Z
-                //CLIP TRIANGLES TO POSITIVE Z
-                Point3 triangle_co = { (triangle[0] + triangle[3] + triangle[6]) / 3,(triangle[1] + triangle[4] + triangle[7]) / 3 ,(triangle[2] + triangle[5] + triangle[8]) / 3 };
+                int block_x = (triangle2 >> 0) & 0b1111;
+                int block_y = (triangle2 >> 4) & 0b1111;
+                int block_z = (triangle2 >> 8) & 0b1111;
+                int vertex_data = vertices[(triangle2 >> 12) & 0b1111];
+                int UV_data=0;
+                if (((triangle2 >> 12) & 0b1111) % 2 == 0) {
+                    UV_data = 0b000111;
+                }
+                else {
+                    UV_data = 0b001011;
+                }
+                Point3 triangle_co = {
+                    block_x + x + ((vertex_data >> 0) & 0b1 + (vertex_data >> 3) & 0b1 + (vertex_data >> 6) & 0b1) / 3,
+                    block_y + y + ((vertex_data >> 1) & 0b1 + (vertex_data >> 4) & 0b1 + (vertex_data >> 7) & 0b1) / 3,
+                    block_z + z + ((vertex_data >> 2) & 0b1 + (vertex_data >> 5) & 0b1 + (vertex_data >> 8) & 0b1) / 3
+                };
+                //Point3 triangle_co = { (triangle[0] + triangle[3] + triangle[6]) / 3,(triangle[1] + triangle[4] + triangle[7]) / 3 ,(triangle[2] + triangle[5] + triangle[8]) / 3 };
                 Point3 vector = { triangle_co.x - px, triangle_co.y - py, triangle_co.z - pz };
                 if ((vector.x * triangle_normal.x + vector.y * triangle_normal.y + vector.z * triangle_normal.z) <= 0.1 || true) {
 
@@ -1291,78 +1356,31 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                     //printf("Thread %d executing iteration %d\n", thread_id);
                     u++;
                     //            std::cout << "hhuuhu" << std::endl;
-                    float p_x_co1 = triangle[0] - px;
-                    float p_y_co1 = triangle[1] - py;
-                    float p_z_co1 = triangle[2] - pz;
-                    float p_u_co1 = triangle[10];
-                    float p_v_co1 = triangle[11];
+                    float p_x_co1 = block_x + x + (vertex_data >> 0 & 0b1) - px;
+                    float p_y_co1 = block_y + y + (vertex_data >> 1 & 0b1) - py;
+                    float p_z_co1 = block_z + z + (vertex_data >> 2 & 0b1) - pz;
+                    float p_u_co1 = (UV_data >> 0) & 0b1;
+                    float p_v_co1 = (UV_data >> 1) & 0b1;
 
-                    float p_x_co2 = triangle[3] - px;
-                    float p_y_co2 = triangle[4] - py;
-                    float p_z_co2 = triangle[5] - pz;
-                    float p_u_co2 = triangle[12];
-                    float p_v_co2 = triangle[13];
+                    float p_x_co2 = block_x + x + (vertex_data >> 3 & 0b1) - px;
+                    float p_y_co2 = block_y + y + (vertex_data >> 4 & 0b1) - py;
+                    float p_z_co2 = block_z + z + (vertex_data >> 5 & 0b1) - pz;
+                    float p_u_co2 = (UV_data >> 2) & 0b1;
+                    float p_v_co2 = (UV_data >> 3) & 0b1;
 
-                    float p_x_co3 = triangle[6] - px;
-                    float p_y_co3 = triangle[7] - py;
-                    float p_z_co3 = triangle[8] - pz;
-                    float p_u_co3 = triangle[14];
-                    float p_v_co3 = triangle[15];
+                    float p_x_co3 = block_x + x + (vertex_data >> 6 & 0b1) - px;
+                    float p_y_co3 = block_y + y + (vertex_data >> 7 & 0b1) - py;
+                    float p_z_co3 = block_z + z + (vertex_data >> 8 & 0b1) - pz;
+                    float p_u_co3 = (UV_data >> 4) & 0b1;
+                    float p_v_co3 = (UV_data >> 5) & 0b1;
 
                     Point3 point1 = { p_x_co1, p_y_co1, p_z_co1 };
                     Point3 point2 = { p_x_co2, p_y_co2, p_z_co2 };
                     Point3 point3 = { p_x_co3, p_y_co3, p_z_co3 };
-                    //CLIP TRIANGLES TO POSITIVE Z
-                    //CLIP TRIANGLES TO POSITIVE Z
-
-                    //CLIP TRIANGLES TO POSITIVE Z
-                    //std::cout << "hi1" << std::endl;
                     if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) || isPointInFrontOfCamera(x_rotation, y_rotation, point2) || isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
-                        //std::cout << "renrering"<<std::endl;
-                        //std::cout << p_z_co1 << std::endl;
-                        //std::cout << "p" << std::endl;
-                        float pos_x;
-                        float pos_y;
-                        float pos_z;
-                        float pos_u;
-                        float pos_v;
-                        if (p_z_co1 > 0) {
-                            pos_x = p_x_co1;
-                            pos_y = p_y_co1;
-                            pos_z = p_z_co1;
-                            pos_u = p_u_co1;
-                            pos_v = p_v_co1;
-                        }
-                        else if (p_z_co2 > 0) {
-                            pos_x = p_x_co2;
-                            pos_y = p_y_co2;
-                            pos_z = p_z_co2;
-                            pos_u = p_u_co2;
-                            pos_v = p_v_co2;
-                        }
-                        else if (p_z_co3 > 0) {
-                            pos_x = p_x_co3;
-                            pos_y = p_y_co3;
-                            pos_z = p_z_co3;
-                            pos_u = p_u_co3;
-                            pos_v = p_v_co3;
-                        }
-                        Point2 pos_vertex = { pos_x,pos_y ,pos_z ,pos_u ,pos_v };
-                        Point2_ref vertex1 = { p_x_co1,p_y_co1 ,p_z_co1 ,p_u_co1 ,p_v_co1 };
-                        Point2_ref vertex2 = { p_x_co1,p_y_co2 ,p_z_co2 ,p_u_co2 ,p_v_co2 };
-                        Point2_ref vertex3 = { p_x_co1,p_y_co3 ,p_z_co3 ,p_u_co3 ,p_v_co3 };
-                        std::vector<Point2_ref> vertices = { vertex1,vertex2,vertex3 };
-                        for (Point2_ref vertex : vertices) {
-                            if (vertex.z < 0) {
-                                //interpolate(vertex, pos_vertex, 0.1);
-                            }
-                        }
-                        //std::cout << "rot1" << std::endl;
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co2, p_y_co2, p_z_co2);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co3, p_y_co3, p_z_co3);
-                        //std::cout << "rot2"<< std::endl;
-
                         float constant_x = number_of_columns * 4;
                         float constant_y = number_of_columns * 2;
                         float constant = 2;
@@ -1380,13 +1398,7 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                             p_y_co3 = constant_y * p_y_co3 / (p_z_co3 + constant);
                             p_z_co3 *= constant_x;
 
-                            //rasterize the triangle
                             std::vector<std::vector<float>> rasterized_points = rasterize({ p_x_co1,p_y_co1 ,p_z_co1 }, { p_x_co2,p_y_co2 ,p_z_co2 }, { p_x_co3,p_y_co3 ,p_z_co3 });
-                            //CLIP TRIANGLES TO POSITIVE Z
-                            // //CLIP TRIANGLES TO POSITIVE Z
-                            // //CLIP TRIANGLES TO POSITIVE Z
-                            // //CLIP TRIANGLES TO POSITIVE Z
-                            //std::cout << rasterized_points.size() << std::endl;
                             for (const std::vector<float>& p : rasterized_points) {
                                 float p_x_co = p[0];
                                 float p_y_co = p[1];
@@ -1401,28 +1413,12 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                                         //std::vector<float> UV_co = { 0,0 };
                                         std::tuple<float,float> UV_co = to_UV({ p_x_co1,p_y_co1,p_z_co1, p_u_co1, p_v_co1 }, { p_x_co2,p_y_co2,p_z_co2, p_u_co2, p_v_co2 }, { p_x_co3,p_y_co3,p_z_co3 , p_u_co3, p_v_co3 }, p_x_co, p_y_co, p_z_co);
                                         int index = characters_per_row * static_cast<int>(p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + p_x_co;
-
-                                        //#pragma omp critical
-                                        //{
-                                        //if (static_cast<int>(1000 * UV_co[0]) < 0) {
-                                            //std::cout << UV_co[0] << " " << UV_co[2] << std::endl;
-                                            //Sleep(10000);
-                                        //}
-                                        //std::cout << "cartesian: " << p_x_co << " " << p_y_co << " " << p_z_co << " UV :" << UV_co[0] << " " << UV_co[1] << std::endl;
-                                        //CLIP TRIANGLES TO POSITIVE Z
-                                        //CLIP TRIANGLES TO POSITIVE Z
-                                        //CLIP TRIANGLES TO POSITIVE Z
-                                        //CLIP TRIANGLES TO POSITIVE Z
-                                        screen[index] = { triangle[9],static_cast<int>(p_z_co), static_cast<int>(1000 * std::get<0>(UV_co)), static_cast<int>(1000 * std::get<1>(UV_co)) };
-                                        //}
-                                        //std::cout << "R\n";
+                                        screen[index] = { 20+2*(((triangle2 >> 12) & 0b1111) / 2),static_cast<int>(p_z_co), static_cast<int>(1000 * std::get<0>(UV_co)), static_cast<int>(1000 * std::get<1>(UV_co)) };
                                     }
                                 }
                             }
                         }
                     }
-                    //std::cout << j*1+k<<" "<<vectors.size() << std::endl;
-
                 }
             }
             auto end_time = std::chrono::steady_clock::now();
@@ -1931,7 +1927,7 @@ int main() {
     std::vector<std::vector<int>> UV_vertices = { {0,0},{1,0},{0,1},{1,1} };
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
-    int render_distance = 16;
+    int render_distance = 8;
     while (true) {
         for (int x = -render_distance; x <= render_distance; x++) {
             for (int y = -render_distance; y <= render_distance; y++) {
