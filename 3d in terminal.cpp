@@ -576,53 +576,81 @@ std::vector<Point2> intersection(Point2 p1, Point2 p2) {
     std::vector<Point2> intersections;
     
     //FIX Z VALUE
-Point2 l1_intersection = { -999999, -999999,0 };
-Point2 l2_intersection = { -999999, -999999,0 };
-Point2 l3_intersection = { -999999, -999999,0 };
-Point2 l4_intersection = { -999999, -999999,0 };
-if (p1.y != p2.y) {
-    float t1 = (-(number_of_columns - 1) / 2 - p1.y) / (p2.y - p1.y);
-    float z_1 = p1.z + t1 * (p2.z - p1.z);
+    //Point2 l1_intersection = { -999999, -999999,0 };
+    //Point2 l2_intersection = { -999999, -999999,0 };
+    //Point2 l3_intersection = { -999999, -999999,0 };
+   // Point2 l4_intersection = { -999999, -999999,0 };
+    float l1_x = -99999999;
+    float l1_y = -999999999;
+    float l1_z = 0;
 
-    float t2 = ((number_of_columns - 1) / 2 - p1.y) / (p2.y - p1.y);
-    float z_2 = p1.z + t2 * (p2.z - p1.z);
+    float l2_x = -99999999;
+    float l2_y = -999999999;
+    float l2_z = 0;
+    if (p1.y != p2.y) {
+        float t1 = (-(number_of_columns - 1) / 2 - p1.y) / (p2.y - p1.y);
+        float z_1 = p1.z + t1 * (p2.z - p1.z);
 
-    l1_intersection = { ((-(number_of_columns - 1) / 2 - p1.y) * ((p1.x - p2.x) / (p1.y - p2.y)) + p1.x), -(number_of_columns - 1) / 2, z_1 };
-    l2_intersection = { (((number_of_columns - 1) / 2 - p1.y) * ((p1.x - p2.x) / (p1.y - p2.y)) + p1.x), (number_of_columns - 1) / 2, z_2 };
-    //std::cout << "l1 " << l1_intersection.x << " " << l1_intersection.y << std::endl;
-}
-if (p1.x != p2.x) {
+        l1_x = ((-(number_of_columns - 1) / 2 - p1.y) * ((p1.x - p2.x) / (p1.y - p2.y)) + p1.x);
+        l1_y = -(number_of_columns - 1) / 2;
+        l1_z = z_1;
 
-    float t3 = (-(characters_per_row - 1) / 2 - p1.x) / (p2.x - p1.x);
-    float z_3 = p1.z + t3 * (p2.z - p1.z);
+        float t2 = ((number_of_columns - 1) / 2 - p1.y) / (p2.y - p1.y);
+        float z_2 = p1.z + t2 * (p2.z - p1.z);
 
-    float t4 = ((characters_per_row - 1) / 2 - p1.x) / (p2.x - p1.x);
-    float z_4 = p1.z + t4 * (p2.z - p1.z);
-
-    l3_intersection = { (-(characters_per_row - 1) / 2),   (-(characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y,  z_3 };
-    //std::cout << "l3.x: " << l3_intersection.x<<" chp: "<< << std::endl;
-    l4_intersection = { (characters_per_row - 1) / 2,   ((characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y, z_4 };
-    //std::cout << -(characters_per_row-1)/2<<" " << "l3:" << l3_intersection.x << " " << l3_intersection.y << std::endl;
-
-}
-if (l1_intersection.x <= max(p1.x, p2.x) && l1_intersection.x >= min(p1.x, p2.x) && l1_intersection.y <= max(p1.y, p2.y) && l1_intersection.y >= min(p1.y, p2.y) && abs(l1_intersection.x) < characters_per_row / 2 && abs(l1_intersection.y) < number_of_columns / 2 && l1_intersection.z != 0) {
-    intersections.push_back(l1_intersection);
-}
-if (l2_intersection.x <= max(p1.x, p2.x) && l2_intersection.x >= min(p1.x, p2.x) && l2_intersection.y <= max(p1.y, p2.y) && l2_intersection.y >= min(p1.y, p2.y) && abs(l2_intersection.x) < characters_per_row / 2 && abs(l2_intersection.y) < number_of_columns / 2 && l2_intersection.z != 0) {
-    intersections.push_back(l2_intersection);
-}
-if (l3_intersection.y <= max(p1.y, p2.y) && l3_intersection.y >= min(p1.y, p2.y) && l3_intersection.x <= max(p1.x, p2.x) && l3_intersection.x >= min(p1.x, p2.x) && abs(l3_intersection.x) < characters_per_row / 2 && abs(l3_intersection.y) < number_of_columns / 2 && l3_intersection.z != 0) {
-    intersections.push_back(l3_intersection);
-}
+        l2_x = (((number_of_columns - 1) / 2 - p1.y) * ((p1.x - p2.x) / (p1.y - p2.y)) + p1.x);
+        l2_y = (number_of_columns - 1) / 2;
+        l2_z = z_2;
 
 
 
-if (l4_intersection.y <= max(p1.y, p2.y) + 1 && l4_intersection.y >= min(p1.y, p2.y) - 1 && l4_intersection.x <= max(p1.x, p2.x) && l4_intersection.x >= min(p1.x, p2.x) && abs(l4_intersection.x) <= characters_per_row / 2 && abs(l4_intersection.y) < number_of_columns / 2 && l4_intersection.z != 0) {
-    intersections.push_back(l4_intersection);
-}
+        //l1_intersection = { ((-(number_of_columns - 1) / 2 - p1.y) * ((p1.x - p2.x) / (p1.y - p2.y)) + p1.x), -(number_of_columns - 1) / 2, z_1 };
+        //l2_intersection = { (((number_of_columns - 1) / 2 - p1.y) * ((p1.x - p2.x) / (p1.y - p2.y)) + p1.x), (number_of_columns - 1) / 2, z_2 };
+        //std::cout << "l1 " << l1_intersection.x << " " << l1_intersection.y << std::endl;
+    }
+    float l3_x = -99999999;
+    float l3_y = -999999999;
+    float l3_z = 0;
 
-//std::cout << "intersect p1.x:" << p1.x << " p1.y:" << p1.y << " p2.x:" << p2.x << " p2.y:" << p2.y << " intersec:" <<l1_intersection.x<< std::endl;
-return intersections;
+    float l4_x = -99999999;
+    float l4_y = -999999999;
+    float l4_z = 0;
+    if (p1.x != p2.x) {
+
+        float t3 = (-(characters_per_row - 1) / 2 - p1.x) / (p2.x - p1.x);
+        float z_3 = p1.z + t3 * (p2.z - p1.z);
+
+        l3_x = -(characters_per_row - 1) / 2;
+        l3_y = (-(characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y;
+        l3_z = z_3;
+
+        float t4 = ((characters_per_row - 1) / 2 - p1.x) / (p2.x - p1.x);
+        float z_4 = p1.z + t4 * (p2.z - p1.z);
+
+        //l3_intersection = { (-(characters_per_row - 1) / 2),   (-(characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y,  z_3 };
+        //std::cout << "l3.x: " << l3_intersection.x<<" chp: "<< << std::endl;
+        l4_x = (characters_per_row - 1) / 2;
+        l4_y = ((characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y;
+        l4_z = z_4;
+        //l4_intersection = { (characters_per_row - 1) / 2,   ((characters_per_row - 1) / 2 - p1.x) * ((p1.y - p2.y) / (p1.x - p2.x)) + p1.y, z_4 };
+        //std::cout << -(characters_per_row-1)/2<<" " << "l3:" << l3_intersection.x << " " << l3_intersection.y << std::endl;
+
+    }
+    if (l1_x <= max(p1.x, p2.x) && l1_x >= min(p1.x, p2.x) && l1_y <= max(p1.y, p2.y) && l1_y >= min(p1.y, p2.y) && abs(l1_x) < characters_per_row / 2 && abs(l1_y) < number_of_columns / 2 && l1_z != 0) {
+        intersections.push_back({l1_x,l1_y,l1_z});
+    }
+    if (l2_x <= max(p1.x, p2.x) && l2_x >= min(p1.x, p2.x) && l2_y <= max(p1.y, p2.y) && l2_y >= min(p1.y, p2.y) && abs(l2_x) < characters_per_row / 2 && abs(l2_y) < number_of_columns / 2 && l2_z != 0) {
+        intersections.push_back({ l2_x,l2_y,l2_z });
+    }
+    if (l3_y <= max(p1.y, p2.y) && l3_y >= min(p1.y, p2.y) && l3_x <= max(p1.x, p2.x) && l3_x >= min(p1.x, p2.x) && abs(l3_x) < characters_per_row / 2 && abs(l3_y) < number_of_columns / 2 && l3_z != 0) {
+        intersections.push_back({ l3_x,l3_y,l3_z });
+    }
+    if (l4_y <= max(p1.y, p2.y) + 1 && l4_y >= min(p1.y, p2.y) - 1 && l4_x <= max(p1.x, p2.x) && l4_x >= min(p1.x, p2.x) && abs(l4_x) <= characters_per_row / 2 && abs(l4_y) < number_of_columns / 2 && l4_z != 0) {
+        intersections.push_back({l4_x,l4_y,l4_z});
+    }
+
+    //std::cout << "intersect p1.x:" << p1.x << " p1.y:" << p1.y << " p2.x:" << p2.x << " p2.y:" << p2.y << " intersec:" <<l1_intersection.x<< std::endl;
+    return intersections;
 }
 
 bool intpoint_inside_trigon(Point2 s, Point2 a, Point2 b, Point2 c)
@@ -1377,12 +1405,12 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
     //{ block[0] + vertices[triangle[0]][0], block[1] + vertices[triangle[0]][1], block[2] + vertices[triangle[0]][2], block[0] + vertices[triangle[1]][0], block[1] + vertices[triangle[1]][1], block[2] + vertices[triangle[1]][2], block[0] + vertices[triangle[2]][0], block[1] + vertices[triangle[2]][1], block[2] + vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] };
 
     //std::sort(vectors.begin(), vectors.end(), compare_triangle_size);
-    int number_of_threads = 1;
+    int number_of_threads = 8;
     //const Point3 player_vector = { sin(x_rotation), tan(y_rotation), cos(x_rotation) };
     //std::cout << player_vector.x << " " << player_vector.y << " " << player_vector.z << std::endl;
     //Sleep(10000);
     std::cout << vectors.size() << std::endl;
-//#pragma omp parallel for
+#pragma omp parallel for
         for (int k = 0; k < number_of_threads; k++) {
             int thread_id = omp_get_thread_num();
             auto start_time = std::chrono::steady_clock::now();
@@ -2128,8 +2156,10 @@ int main() {
         controls(x_rotation, y_rotation, px, py, pz, min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
         //std::cout << "update" << std::endl;
         update_screen(screen, map_triangles, x_rotation, y_rotation, px, py, pz);
+        //Sleep(1000);
         //std::cout << "draw" << std::endl;
         draw_screen(screen);
+        
     }
 
     return 0;
