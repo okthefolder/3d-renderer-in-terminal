@@ -52,6 +52,8 @@ struct Point3 {
     }
 };
 
+
+
 struct BoundingBox {
     float px;
     float py;
@@ -151,6 +153,8 @@ std::vector<std::vector<int>> points = {
     //{1,0,0,2,1,1}
 };
 
+std::vector<Point2> screen_vertices = { {characters_per_row / 2 - 1,number_of_columns / 2 - 1},{-characters_per_row / 2 + 1,-number_of_columns / 2 + 1},{characters_per_row / 2 - 1,-number_of_columns / 2 + 1},{-characters_per_row / 2 + 1,number_of_columns / 2 + 1} };
+
 std::vector<std::vector<int>> dirtTexture = {
     {1, 3, 2, 2, 1, 3, 2, 1},
     {2, 2, 1, 3, 1, 2, 3, 1},
@@ -228,6 +232,14 @@ std::vector<float> getDeerministicRandomVector(int x, int y) {
     float vy = sin(angle);
 
     return { vx, vy };
+}
+void fill_screen(int screen[characters_per_row * number_of_columns][4]) {
+    for (int i = 0; i < characters_per_row * number_of_columns; i++) {
+        screen[i][0] = 0;
+        screen[i][1] = 1000000000;
+        screen[i][2] = -1;
+        screen[i][3] = -1;
+    }
 }
 
 float dot_product(std::vector<float> v1, std::vector<float> v2) {
@@ -445,7 +457,7 @@ void add_rotation(float x_rotation, float y_rotation, float& x_co, float& y_co, 
     z_co = new_z_co;
 }
 
-void draw_screen(const std::vector<std::vector<int>>& screen) {
+void draw_screen(const int screen[characters_per_row * number_of_columns][4]) {
     constexpr int buffer_size = characters_per_row * number_of_columns;
     char* buffer = new char[buffer_size];
 
@@ -456,6 +468,7 @@ void draw_screen(const std::vector<std::vector<int>>& screen) {
         //    std::cout << i << '\n';
         //}
         int value = screen[i][0];
+        //std::cout << value << std::endl;
         
         if (screen[i][2] != -1) {
             //if (screen[i][2] <0 ) {
@@ -473,8 +486,9 @@ void draw_screen(const std::vector<std::vector<int>>& screen) {
             if (screen[i][2]!=0) {
                 //Sleep(100);
             }
-            //if (screen[i][2]>1000 || screen[i][3]>1000)
-            //std::cout << screen[i][2] << " " << screen[i][3] << std::endl;
+            if (screen[i][2] < 0 || screen[i][3] < 0) {
+                std::cout << screen[i][2] << " " << screen[i][3] << std::endl;
+            }
             value += dirtTexture[(7*screen[i][2])/1000][(7 * screen[i][3]) / 1000];
             //value += screen[i][2] / 200;
         }
@@ -632,10 +646,11 @@ bool compareX(const Point2& p1, const Point2& p2) {
 }
 
 bool compareAngles(const Point2& p1, const Point2& p2, const Point2& centroid) {
-        float angle1 = atan2(p1.y - centroid.y, p1.x - centroid.x);
-        float angle2 = atan2(p2.y - centroid.y, p2.x - centroid.x);
-        //std::cout << angle1 << " " << angle2 << std::endl;
-        return angle1 < angle2;
+    //std::cout << "rgrogsrg" << std::endl;
+    float angle1 = atan2(p1.y - centroid.y, p1.x - centroid.x);
+    float angle2 = atan2(p2.y - centroid.y, p2.x - centroid.x);
+   // std::cout << angle1 << " " << angle2 << std::endl;
+    return angle1 < angle2;
 
 }
 
@@ -682,6 +697,11 @@ float area_of_3d_triangle(const Point2& a, const Point2& b, const Point2& c) {
 std::tuple<float, float> to_UV(const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z) {
     Point2 p = { x,y,z };
     const float area_abc = area_of_3d_triangle(a, b, c);
+    if (area_abc < 1) {
+        return std::make_tuple(0, 0);
+    }
+
+
     const float u = area_of_3d_triangle(b, c, p) / area_abc;
     const float v = area_of_3d_triangle(a, c, p) / area_abc;
     const float w = 1 - u - v;
@@ -689,6 +709,9 @@ std::tuple<float, float> to_UV(const Point2& a, const Point2& b, const Point2& c
     //float uvb = max(0.0f, min(1.0f, z*(u * a.v/a.z + v * b.v/b.z + w * c.v/c.z)));
     const float uva = max(0.0f,min(1.0f,(u * a.u + v * b.u + w * c.u)));
     const float uvb = max(0.0f,min(1.0f,(u * a.v + v * b.v + w * c.v)));
+    //std::cout << (u * a.u + v * b.u + w * c.u) << " " << (u * a.v + v * b.v + w * c.v) << std::endl;
+    //std::cout << a.u << " " << b.u << " " << c.u << " " << a.v << " " << b.v << " " << c.v << std::endl;
+    //Sleep(10);
     return std::make_tuple( uva, uvb );
 }
 
@@ -713,150 +736,7 @@ bool isPointInsideTriangle(const Point2& a, const Point2& b, const Point2& c, co
     }
 }
 
-std::vector<std::vector<float>> rasterize( Point2 a, Point2 b, Point2 c) {
-    std::vector<std::vector<float>> rasterized;
-    std::vector<float> x_co_for_lines_1;
-    std::vector<float> x_co_for_lines_2;
-    std::vector<float> z_co_for_lines_1;
-    std::vector<float> z_co_for_lines_2;
-    std::vector<float> v_co_for_lines_1;
-    std::vector<float> v_co_for_lines_2;
-    order_points(a, b, c);
-    std::swap(c, a);
-    if (max(abs(a.x), max(abs(b.x), abs(c.x))) >     1+characters_per_row / 2 || (max(abs(a.y), max(abs(b.y), abs(c.y))) > 1+number_of_columns / 2)) {
-            std::vector<Point2> a_b_intersection=intersection(a, b);
-            std::vector<Point2> a_c_intersection = intersection(a, c);
-            std::vector<Point2> b_c_intersection = intersection(b, c);
-            std::vector<Point2> points_for_triangulation;
-            if (is_point_inside_screen(a)) {
-                points_for_triangulation.push_back(a);
-         //       std::cout << a.x << " a " << a.y << std::endl;
-            };
-            if (is_point_inside_screen(b)) { 
-                points_for_triangulation.push_back(b);
-           //     std::cout << b.x << " b " << b.y << std::endl;
-            };
-            if (is_point_inside_screen(c)) { 
-                points_for_triangulation.push_back(c);
-               // std::cout << c.x << " c " << c.y << std::endl;
-            };
-            for (Point2& p : a_b_intersection) {
-               // std::cout << p.x << " a_b " << p.y <<" " <<p.z<< std::endl;
-                points_for_triangulation.push_back(p);
-            }
-            for (Point2& p : a_c_intersection) {
-                //std::cout << p.x << " a_c " << p.y << " " << p.z << std::endl;
-                points_for_triangulation.push_back(p);
-            }
-            for (Point2& p : b_c_intersection) {
-                //std::cout << p.x << " b_c " << p.y << " " << p.z << std::endl;
-                points_for_triangulation.push_back(p);
-            }
-            std::vector<Point2> screen_vertices = { {characters_per_row / 2 -1,number_of_columns / 2-1},{-characters_per_row / 2+1,-number_of_columns / 2+1},{characters_per_row / 2-1,-number_of_columns / 2+1},{-characters_per_row / 2+1,number_of_columns / 2 + 1} };
-            for (int i = 0; i < 4; ++i) {
-                if (intpoint_inside_trigon(screen_vertices[i], a, b, c)) {
-                    std::vector<float> plane_coefficients=plane_equation(a, b, c);
-                    float p_z = -(plane_coefficients[3]+ plane_coefficients[0]* screen_vertices[i].x + plane_coefficients[1]* screen_vertices[i].y) / plane_coefficients[2];
-                    points_for_triangulation.push_back({screen_vertices[i].x,screen_vertices[i].y, p_z});
-                }
-            }
-            if (points_for_triangulation.size() != 0) {
-                float centroidx = 0;
-                float centroidy = 0;
-                for (Point2& p : points_for_triangulation) {
-                    
-                    centroidx += p.x;
-                    centroidy += p.y;
-                }
-                for (int i = 0; i < points_for_triangulation.size(); i++) {
-                }
-                Point2 centroid = { centroidx / (points_for_triangulation.size()),centroidy / (points_for_triangulation.size()) ,1 };
-                //std::cout << "sort1" << std::endl;
-                std::sort(points_for_triangulation.begin(), points_for_triangulation.end(), [&](const Point2& p1, const Point2& p2) {
-                    return compareAngles(p1, p2, centroid);
-                    });
-                //std::cout << "sort2" << std::endl;
 
-                for (int i = 1; i < points_for_triangulation.size() - 1; i++) {
-                    for (std::vector<float> tri_rasteri : rasterize(points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1])) {
-                        rasterized.push_back(tri_rasteri);
-                    }
-                }
-            }
-            else {
-            }
-            return rasterized;
-    }
-    if (abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) <= 2) {
-        return { { a.x,a.y,a.z } };
-    }
-    rasterized.reserve(0.5 * abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)));
-    for (float i = c.y; i >= b.y; i--) {
-
-        if (abs(b.y - c.y) > 1) {
-            x_co_for_lines_2.push_back((i - c.y) * (b.x - c.x) / (b.y - c.y) + c.x);
-            z_co_for_lines_2.push_back((i - c.y) * (b.z - c.z) / (b.y - c.y) + c.z);
-        }
-        else {
-            x_co_for_lines_2.push_back(b.x);
-            z_co_for_lines_2.push_back(b.z);
-        }
-    }
-    for (float i = b.y; i >= a.y; i--) {
-        if (abs(b.y - a.y) > 1) {
-            x_co_for_lines_2.push_back((i - b.y) * (a.x - b.x) / (a.y - b.y) + b.x);
-            z_co_for_lines_2.push_back((i - b.y) * (a.z - b.z) / (a.y - b.y) + b.z);
-        }
-        else {
-            x_co_for_lines_2.push_back(a.x);
-            z_co_for_lines_2.push_back(a.z);
-        }
-    }
-    for (float i = c.y; i >= a.y; i--) {
-        if (abs(c.y - a.y) > 1) {
-            x_co_for_lines_1.push_back((i - c.y) * (a.x - c.x) / (a.y - c.y) + c.x);
-            z_co_for_lines_1.push_back((i - c.y) * (a.z - c.z) / (a.y - c.y) + c.z);
-        }
-        else {
-            x_co_for_lines_1.push_back(c.x);
-            z_co_for_lines_1.push_back(c.z);
-        }
-    }
-    if (x_co_for_lines_1.size() == 0) {
-        std::cout << x_co_for_lines_2.size() << std::endl;
-    }
-    for (float i = 0; i < x_co_for_lines_1.size(); i++) {
-        if (x_co_for_lines_1[i] < x_co_for_lines_2[i]) {
-            for (float x = x_co_for_lines_1[i]; x <= x_co_for_lines_2[i]; x++) {
-                if (x_co_for_lines_1[i] != x_co_for_lines_2[i]) {
-                    if (z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) > 0.1) {
-                        rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) });
-                    }
-                }
-                else if (z_co_for_lines_1[i]>0.1) {
-                    rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] });
-                }
-            }
-        }
-        else {
-            for (float x = x_co_for_lines_2[i]; x <= x_co_for_lines_1[i]; x++) {
-                if (x_co_for_lines_1[i] != x_co_for_lines_2[i]) {
-                    if (z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i])>0.1) {
-                        rasterized.push_back({ x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) });
-                    }
-                }
-                else {
-                    if (z_co_for_lines_1[i]>0.1)
-                    rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] });
-                }
-            }
-        }
-    }
-    if (rasterized.size() < 2) {
-        //std::cout << "rgrdhhrd" << std::endl;
-    }
-    return rasterized;
-}
 
 std::vector<std::vector<int>> blocks_from_chunk(const std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& chunks, int cx, int cy, int cz) {
     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>::const_iterator it = chunks.find(std::make_tuple(cx, cy, cz));
@@ -1204,6 +1084,12 @@ bool inside_2d_frustum(float fardist, Point3 point, Point3 p_co, float x_rotatio
     return ((x0 * h + z0 * d > 0) && (x0 * h - z0 * d > 0));
 }
 
+double calculateTriangleArea_Point2_v(const Point2& A, const Point2& B, const Point2& C) {
+    // Calculate the determinant of the matrix formed by the vertices
+    double area = 0.5 * std::abs(A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
+    return area;
+}
+
 void interpolate(Point2_ref& v1, const Point2 v2, float z) {
     float t = (z - v1.z) / (v2.z - v1.z);
     v1.x = v1.x + t * (v2.x - v1.x);
@@ -1213,8 +1099,230 @@ void interpolate(Point2_ref& v1, const Point2 v2, float z) {
     v1.v = v1.v + t * (v2.v - v1.v);
 }
 
-void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, const float x_rotation, const float y_rotation, const float px, const float py, const float pz) {
-    screen.assign(characters_per_row * number_of_columns, { 0, 1024 * 1024 * 1024,-1,-1 });
+void update_pixel(int screen[characters_per_row*number_of_columns][4], const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const int& triangle_index) {
+    //std::cout << x << " " << y << " " << z << std::endl;
+    //if (z != 0 && abs(1 * y) < number_of_columns / 2 && abs(1 * x) < characters_per_row / 2) {
+        //std::cout << characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co<<"\n";
+        if (z > 0 && z < screen[characters_per_row * (number_of_columns/2+static_cast<int>(y)) + (characters_per_row / 2 + static_cast<int>(x))][1]) {
+            //std::vector<float> UV_co = { 0,0 };
+            std::tuple<float, float> UV_co = to_UV({ a.x,a.y,a.z, a.u, a.v }, { b.x,b.y,b.z, b.u, b.v }, { c.x,c.y,c.z, c.u, c.v }, x, y, z);
+            int index = characters_per_row * (number_of_columns / 2 + static_cast<int>(y)) + (characters_per_row / 2 + x);
+            screen[index][0] = 20 + 2 * (triangle_index / 2);
+            screen[index][1] = static_cast<int>(z);
+            screen[index][2] = static_cast<int>(1000 * std::get<0>(UV_co));
+            screen[index][3] = static_cast<int>(1000 * std::get<1>(UV_co));
+        }
+    //}
+}
+
+void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Point2 b, Point2 c, int triangle_index) {
+    //std::vector<std::vector<float>> rasterized;
+    std::vector<float> x_co_for_lines_1;
+    std::vector<float> x_co_for_lines_2;
+    std::vector<float> z_co_for_lines_1;
+    std::vector<float> z_co_for_lines_2;
+    std::vector<float> v_co_for_lines_1;
+    std::vector<float> v_co_for_lines_2;
+    order_points(a, b, c);
+    std::swap(c, a);
+    if (calculateTriangleArea_Point2_v(a, b, c) <= 1) {
+        return;
+    }
+    //std::cout <<"start " << c.y << " " << number_of_columns / 2 << " " << max(abs(a.y), max(abs(b.y), abs(c.y))) << std::endl;
+    if (max(abs(a.x), max(abs(b.x), abs(c.x))) > characters_per_row / 2 || (max(abs(a.y), max(abs(b.y), abs(c.y))) > number_of_columns / 2)) {
+        
+        //std::cout << "rge" << std::endl;
+        std::vector<Point2> a_b_intersection = intersection(a, b);
+        std::vector<Point2> a_c_intersection = intersection(a, c);
+        std::vector<Point2> b_c_intersection = intersection(b, c);
+        std::vector<Point2> points_for_triangulation;
+        if (is_point_inside_screen(a)) {
+            points_for_triangulation.push_back(a);
+            //       std::cout << a.x << " a " << a.y << std::endl;
+        };
+        if (is_point_inside_screen(b)) {
+            points_for_triangulation.push_back(b);
+            //     std::cout << b.x << " b " << b.y << std::endl;
+        };
+        if (is_point_inside_screen(c)) {
+            points_for_triangulation.push_back(c);
+            // std::cout << c.x << " c " << c.y << std::endl;
+        };
+        for (Point2& p : a_b_intersection) {
+            // std::cout << p.x << " a_b " << p.y <<" " <<p.z<< std::endl;
+            points_for_triangulation.push_back(p);
+        }
+        for (Point2& p : a_c_intersection) {
+            //std::cout << p.x << " a_c " << p.y << " " << p.z << std::endl;
+            points_for_triangulation.push_back(p);
+        }
+        for (Point2& p : b_c_intersection) {
+            //std::cout << p.x << " b_c " << p.y << " " << p.z << std::endl;
+            points_for_triangulation.push_back(p);
+        }
+        
+        for (int i = 0; i < 4; ++i) {
+            if (intpoint_inside_trigon(screen_vertices[i], a, b, c)) {
+                std::vector<float> plane_coefficients = plane_equation(a, b, c);
+                float p_z = -(plane_coefficients[3] + plane_coefficients[0] * screen_vertices[i].x + plane_coefficients[1] * screen_vertices[i].y) / plane_coefficients[2];
+                points_for_triangulation.push_back({ screen_vertices[i].x,screen_vertices[i].y, p_z });
+            }
+        }
+        if (points_for_triangulation.size() != 0) {
+            float centroidx = 0;
+            float centroidy = 0;
+            for (Point2& p : points_for_triangulation) {
+
+                centroidx += p.x;
+                centroidy += p.y;
+            }
+            for (int i = 0; i < points_for_triangulation.size(); i++) {
+            }
+            Point2 centroid = { centroidx / (points_for_triangulation.size()),centroidy / (points_for_triangulation.size()) ,1 };
+            //std::cout << "sort1" << std::endl;
+            bool halt_test=false;
+            for (int i = 0; i < points_for_triangulation.size();i++) {
+                for (int j = 0; j < points_for_triangulation.size(); j++) {
+                    if (i != j) {
+                        if (points_for_triangulation[i].y == points_for_triangulation[j].y && points_for_triangulation[i].x == points_for_triangulation[j].x) {
+                            halt_test = true;
+                        }
+                    }
+                }
+            }
+            if (halt_test==false) {
+                std::sort(points_for_triangulation.begin(), points_for_triangulation.end(), [&](const Point2& p1, const Point2& p2) {
+                    return compareAngles(p1, p2, centroid);
+                    });
+                //std::cout << "sort2" << std::endl;
+
+                for (int i = 1; i < points_for_triangulation.size() - 1; i++) {
+                    rasterize(screen, points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1], triangle_index);
+                    //for (std::vector<float> tri_rasteri : rasterize(points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1])) {
+                    //    rasterized.push_back(tri_rasteri);
+                    //}
+                }
+            }
+            
+        }
+        else {
+        }
+        //return rasterized;
+    }
+    else {
+        //std::cout << "rrrgrtg" << std::endl;
+
+
+        if (abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) <= 2) {
+            //return { { a.x,a.y,a.z } };
+        }
+        //rasterized.reserve(0.5 * abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)));
+        for (float i = c.y; i >= b.y; i--) {
+
+            if (abs(b.y - c.y) > 1) {
+                x_co_for_lines_2.push_back((i - c.y) * (b.x - c.x) / (b.y - c.y) + c.x);
+                z_co_for_lines_2.push_back((i - c.y) * (b.z - c.z) / (b.y - c.y) + c.z);
+                //v_co_for_lines_2.push_back(c.v + (c.y - i) * (b.y - c.v) / (c.y - b.y));
+            }
+            else {
+                x_co_for_lines_2.push_back(b.x);
+                z_co_for_lines_2.push_back(b.z);
+                //v_co_for_lines_2.push_back(b.v);
+
+            }
+        }
+        for (float i = b.y; i >= a.y; i--) {
+            if (abs(b.y - a.y) > 1) {
+                x_co_for_lines_2.push_back((i - b.y) * (a.x - b.x) / (a.y - b.y) + b.x);
+                z_co_for_lines_2.push_back((i - b.y) * (a.z - b.z) / (a.y - b.y) + b.z);
+                //v_co_for_lines_2.push_back(b.v + (b.y - i) * (a.y - b.v) / (b.y - a.y));
+
+            }
+            else {
+                x_co_for_lines_2.push_back(a.x);
+                z_co_for_lines_2.push_back(a.z);
+                //v_co_for_lines_2.push_back(a.v);
+
+            }
+        }
+        for (float i = c.y; i >= a.y; i--) {
+            if (abs(c.y - a.y) > 1) {
+                x_co_for_lines_1.push_back((i - c.y) * (a.x - c.x) / (a.y - c.y) + c.x);
+                z_co_for_lines_1.push_back((i - c.y) * (a.z - c.z) / (a.y - c.y) + c.z);
+                //v_co_for_lines_1.push_back(c.v + (c.y - i) * (a.y - c.v) / (c.y - a.y));
+
+            }
+            else {
+                x_co_for_lines_1.push_back(c.x);
+                z_co_for_lines_1.push_back(c.z);
+                //v_co_for_lines_1.push_back(c.v);
+
+            }
+        }
+        if (x_co_for_lines_1.size() == 0) {
+            std::cout << x_co_for_lines_2.size() << std::endl;
+        }
+        for (float i = 0; i < x_co_for_lines_1.size(); i++) {
+            if (x_co_for_lines_1[i] < x_co_for_lines_2[i]) {
+                for (float x = x_co_for_lines_1[i]; x <= x_co_for_lines_2[i]; x++) {
+                    if (x_co_for_lines_1[i] != x_co_for_lines_2[i]) {
+                        if (z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) > 0.1) {
+                           // std::cout << "end " << c.y << std::endl;
+                            /*
+                            int y = c.y - i;
+                            int z = z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]);
+                            if (z > 0 && z < screen[characters_per_row * (number_of_columns / 2 + static_cast<int>(y)) + (characters_per_row / 2 + x)][1]) {
+                                //std::vector<float> UV_co = { 0,0 };
+                                std::tuple<float, float> UV_co = to_UV({ a.x,a.y,a.z, a.u, a.v }, { b.x,b.y,b.z, b.u, b.v }, { c.x,c.y,c.z, c.u, c.v }, x, y, z);
+                                int index = characters_per_row * (number_of_columns / 2 + static_cast<int>(y)) + (characters_per_row / 2 + x);
+                                screen[index] = { 20 + 2 * (triangle_index / 2),static_cast<int>(z), static_cast<int>(1000 * std::get<0>(UV_co)), static_cast<int>(1000 * std::get<1>(UV_co)) };
+                            }
+                            */
+
+                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index);
+
+                            //rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i])});
+                        }
+                    }
+                    else if (z_co_for_lines_1[i] > 0.1) {
+                        //rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] });
+                    }
+                }
+            }
+            else {
+                for (float x = x_co_for_lines_2[i]; x <= x_co_for_lines_1[i]; x++) {
+                    if (x_co_for_lines_1[i] != x_co_for_lines_2[i]) {
+                        if (z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) > 0.1) {
+                            /*int y = c.y - i;
+                            int z = z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]);
+                            if (z > 0 && z < screen[characters_per_row * (number_of_columns / 2 + static_cast<int>(y)) + (characters_per_row / 2 + x)][1]) {
+                                //std::vector<float> UV_co = { 0,0 };
+                                std::tuple<float, float> UV_co = to_UV({ a.x,a.y,a.z, a.u, a.v }, { b.x,b.y,b.z, b.u, b.v }, { c.x,c.y,c.z, c.u, c.v }, x, y, z);
+                                int index = characters_per_row * (number_of_columns / 2 + static_cast<int>(y)) + (characters_per_row / 2 + x);
+                                screen[index] = { 20 + 2 * (triangle_index / 2),static_cast<int>(z), static_cast<int>(1000 * std::get<0>(UV_co)), static_cast<int>(1000 * std::get<1>(UV_co)) };
+                            }*/
+                          //  std::cout << "end " << c.y << std::endl;
+                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index);
+                            //rasterized.push_back({ x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) });
+                        }
+                    }
+                    else {
+                        //if (z_co_for_lines_1[i]>0.1)
+                        //rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] });
+                    }
+                }
+            }
+        }
+    }
+    //if (rasterized.size() < 2) {
+        //std::cout << "rgrdhhrd" << std::endl;
+    //}
+    //return rasterized;
+}
+
+void update_screen(int screen[characters_per_row*number_of_columns][4], const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, const float x_rotation, const float y_rotation, const float px, const float py, const float pz) {
+   // screen.assign(characters_per_row * number_of_columns, { 0, 1024 * 1024 * 1024,-1,-1 });
+    fill_screen(screen);
     int u = 0;
     std::vector<int> vectors;
     std::vector<std::tuple<int, int>> keys;
@@ -1279,10 +1387,12 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
             int thread_id = omp_get_thread_num();
             auto start_time = std::chrono::steady_clock::now();
             for (int j = 0; j < vectors.size() / number_of_threads; ++j) {
+                //std::cout << j << std::endl;
 
                 float x, y, z;
                 std::tie(x, y, z) = chunk_coordinates[j*number_of_threads+k];
                 const int& triangle2 = vectors[j * number_of_threads + k];
+                //std::cout << "bää" << std::endl;
                 /*std::vector<int> triangle = triangle_decoder(triangle2);
                 
                 for (int i = 0; i < 3; i++) {
@@ -1292,7 +1402,7 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
 
                 }*/
                 Point3 triangle_normal = { 0,0,0 };
-                switch (std::get<1>(keys[j * number_of_threads + k])) {
+                switch ((triangle2 >> 12) & 0b1111) {
                     case 0:
                         triangle_normal = {0,0,-1};
                         break;
@@ -1374,9 +1484,11 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                     float p_u_co3 = (UV_data >> 4) & 0b1;
                     float p_v_co3 = (UV_data >> 5) & 0b1;
 
+
                     Point3 point1 = { p_x_co1, p_y_co1, p_z_co1 };
                     Point3 point2 = { p_x_co2, p_y_co2, p_z_co2 };
                     Point3 point3 = { p_x_co3, p_y_co3, p_z_co3 };
+                    //std::cout << "böö" << std::endl;
                     if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) || isPointInFrontOfCamera(x_rotation, y_rotation, point2) || isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co2, p_y_co2, p_z_co2);
@@ -1398,8 +1510,10 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                             p_y_co3 = constant_y * p_y_co3 / (p_z_co3 + constant);
                             p_z_co3 *= constant_x;
 
-                            std::vector<std::vector<float>> rasterized_points = rasterize({ p_x_co1,p_y_co1 ,p_z_co1 }, { p_x_co2,p_y_co2 ,p_z_co2 }, { p_x_co3,p_y_co3 ,p_z_co3 });
-                            for (const std::vector<float>& p : rasterized_points) {
+                            //std::vector<std::vector<float>> rasterized_points = 
+                            //std::cout << "raster" << std::endl;
+                            rasterize(screen, { p_x_co1,p_y_co1 ,p_z_co1, p_u_co1,p_v_co1 }, { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 }, { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 }, (triangle2 >> 12) & 0b1111);
+                            /*for (const std::vector<float>& p : rasterized_points) {
                                 float p_x_co = p[0];
                                 float p_y_co = p[1];
                                 float p_z_co = p[2];
@@ -1416,7 +1530,7 @@ void update_screen(std::vector<std::vector<int>>& screen, const std::unordered_m
                                         screen[index] = { 20+2*(((triangle2 >> 12) & 0b1111) / 2),static_cast<int>(p_z_co), static_cast<int>(1000 * std::get<0>(UV_co)), static_cast<int>(1000 * std::get<1>(UV_co)) };
                                     }
                                 }
-                            }
+                            }*/
                         }
                     }
                 }
@@ -1884,9 +1998,14 @@ std::tuple<int, int, int> block_placing(std::unordered_map<std::tuple<int, int, 
     return std::make_tuple(0, 0, 0);
 }
 
+
+
 int main() {
-    std::vector<std::vector<int>> screen(characters_per_row * number_of_columns);
-    screen.assign(characters_per_row * number_of_columns, { 0, 1024 * 1024 * 1024,-1,-1 });
+    //std::cout << "vey very pre" << std::endl;
+    int(*screen)[4] = new int[characters_per_row * number_of_columns][4];
+    //std::cout << "vey pre" << std::endl;
+    fill_screen(screen);
+    //std::cout << "pre" << std::endl;
     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual> map_chunks;
     std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual> map_triangles;
     std::vector<std::vector<int>> faces = {
@@ -1928,10 +2047,14 @@ int main() {
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
     int render_distance = 8;
+    //std::cout << "start" << std::endl;
     while (true) {
+        //std::cout << "start" << std::endl;
+
         for (int x = -render_distance; x <= render_distance; x++) {
             for (int y = -render_distance; y <= render_distance; y++) {
                 for (int z = -render_distance; z <= render_distance; z++) {
+                    //std::cout << x << " " << y << " " << z << std::endl;
                     std::tuple<int, int, int> key = std::make_tuple(px / 16 + x, py / 16 + y, pz / 16 + z);
                     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>::iterator it = map_chunks.find(key);
                     if (it == map_chunks.end()) {
@@ -1944,9 +2067,12 @@ int main() {
                 }
             }
         }
+        //std::cout << "start" << std::endl;
+
         for (int x = 1 - render_distance; x <= render_distance - 1; x++) {
             for (int y = 1-render_distance; y <= render_distance-1; y++) {
                 for (int z = 1-render_distance; z <= render_distance-1; z++) {
+                    //std::cout << x << " " << y << " " << z << std::endl;
                     std::tuple<int, int, int> key = std::make_tuple(px / 16 + x, py / 16 + y, pz / 16 + z);
                     std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>::iterator it = map_triangles.find(key);
                     if (it == map_triangles.end()) {
@@ -1956,6 +2082,8 @@ int main() {
                 }
             }
         }
+        //std::cout << "start" << std::endl;
+
         std::vector<std::tuple<int, int, int>> keysToRemove;
         for (auto& pair : map_chunks) {
             const std::tuple<int, int, int>& co = pair.first;
@@ -1996,9 +2124,11 @@ int main() {
                 block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
             }
         }
-
+        //std::cout << "controls" << std::endl;
         controls(x_rotation, y_rotation, px, py, pz, min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
+        //std::cout << "update" << std::endl;
         update_screen(screen, map_triangles, x_rotation, y_rotation, px, py, pz);
+        //std::cout << "draw" << std::endl;
         draw_screen(screen);
     }
 
