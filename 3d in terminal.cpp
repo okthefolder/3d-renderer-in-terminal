@@ -15,6 +15,16 @@
 #include <tuple>
 #include <mutex>
 #include <omp.h>
+#define FOREGROUND_BLUE      0x0001
+#define FOREGROUND_GREEN     0x0002
+#define FOREGROUND_RED       0x0004
+#define FOREGROUND_INTENSITY 0x0008
+#define BACKGROUND_BLUE      0x0010
+#define BACKGROUND_GREEN     0x0020
+#define BACKGROUND_RED       0x0040
+#define BACKGROUND_INTENSITY 0x0080
+#define FOREGROUND_WHITE     (FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
+#define BACKGROUND_BLACK     0
 void clear_screen() {
 #ifdef _WIN32
     system("cls");
@@ -51,7 +61,6 @@ struct Point3 {
         return { -vec.x, -vec.y, -vec.z };
     }
 };
-
 
 
 struct BoundingBox {
@@ -138,14 +147,14 @@ int unique_blocks = 1;
 // for 2 (940, 238)
 // for 3 (626,160)
 //keep the numbers even
-const int characters_per_row = 940;
-const int number_of_columns = 240;
+const int characters_per_row = 1800;
+const int number_of_columns = 400;
 const float FOV = 2*M_PI / 3;  // Field of view in degrees
 const float ASPECT_RATIO = static_cast<float>(characters_per_row) / static_cast<float>(number_of_columns);  // Width divided by height
 float dy = 0;
 
 std::vector<char> characters = {
-        '.', '-', ':', '_', ',', '!', 'r', 'c', 'z', 's', 'L', 'T', 'v', ')', 'J', '7', '(', 'F', 'i', '{', 'C', '}', 'f', 'I', '3', '1', 't', 'l', 'u', '[', 'n', 'e', 'o', 'Z', '5', 'Y', 'x', 'j', 'y', 'a', ']', '2', 'E', 'S', 'w', 'q', 'k', 'P', '6', 'h', '9', 'd', '4', 'V', 'p', 'O', 'G', 'b', 'U', 'A', 'K', 'X', 'H', 'm', '8', 'R', 'D', '#', '$', 'B', 'g', '0', 'M', 'N', 'W', 'Q', '@'
+        '.', '-', ':', ',', '!', 'r', 'c', 'z', 's', 'L', 'T', 'v', ')', 'J', '7', '(', 'F', 'i', '{', 'C', '}', 'f', 'I', '3', '1', 't', 'l', 'u', '[', 'n', 'e', 'o', 'Z', '5', 'Y', 'x', 'j', 'y', 'a', ']', '2', 'E', 'S', 'w', 'q', 'k', 'P', '6', 'h', '9', 'd', '4', 'V', 'p', 'O', 'G', 'b', 'U', 'A', 'K', 'X', 'H', 'm', '8', 'R', 'D', '#', '$', 'B', 'g', '0', 'M', 'N', 'W', 'Q', '@'
 };
 
 std::vector<std::vector<int>> points = {
@@ -458,55 +467,52 @@ void add_rotation(float x_rotation, float y_rotation, float& x_co, float& y_co, 
 }
 
 void draw_screen(const int screen[characters_per_row * number_of_columns][4]) {
-    constexpr int buffer_size = characters_per_row * number_of_columns;
-    char* buffer = new char[buffer_size];
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    // Fill the buffer with characters or spaces based on screen data
+    // Get console screen buffer info
+    CONSOLE_SCREEN_BUFFER_INFO bufferInfo;
+    GetConsoleScreenBufferInfo(hConsole, &bufferInfo);
 
-    for (int i = 0; i < buffer_size; ++i) {
-        //if (i % 1000 == 0) {
-        //    std::cout << i << '\n';
-        //}
-        int value = screen[i][0];
-        //std::cout << value << std::endl;
-        
-        if (screen[i][2] != -1) {
-            //if (screen[i][2] <0 ) {
-            //    std::cout << i <<" "<<screen[i][0] << " " << screen[i][1] << " " << screen[i][2] << " " << screen[i][3] << '\n';
-            //}
-            //if (abs(screen[i][2] / 100) > 10) {
-                //std::cout << screen[i][2] / 100 << std::endl;
-                //leep(10);
-            //}
+    COORD bufferSize = { static_cast<SHORT>(characters_per_row), static_cast<SHORT>(number_of_columns) };
+    COORD bufferCoord = { 0, 0 };
+    SMALL_RECT writeRegion = { 0, 0, bufferSize.X - 1, bufferSize.Y - 1 };
 
-            //value += min(abs(screen[i][2]/100), 10);
-        //}
+    CHAR_INFO* buffer = new CHAR_INFO[bufferSize.X * bufferSize.Y];
 
-            //std::cout << screen[i][2]<<" "<< screen[i][3] << std::endl;
-            if (screen[i][2]!=0) {
-                //Sleep(100);
-            }
-            if (screen[i][2] < 0 || screen[i][3] < 0) {
-                std::cout << screen[i][2] << " " << screen[i][3] << std::endl;
-            }
-            value += dirtTexture[(7*screen[i][2])/1000][(7 * screen[i][3]) / 1000];
-            //value += screen[i][2] / 200;
-        }
-        if (i % characters_per_row == characters_per_row - 1) {
-            buffer[i] = '\n';
-        }
-        else {
-            buffer[i] = (value != 0) ? characters[value] : ' ';
-        }
-        
+    // Initialize buffer with default attributes
+    for (int i = 0; i < bufferSize.X * bufferSize.Y; ++i) {
+        buffer[i].Char.AsciiChar = L' ';  // Default character (space)
+        buffer[i].Attributes = bufferInfo.wAttributes;  // Use current console attributes
     }
 
-    // Clear the screen before printing
-    clear_screen();
+    // Populate the buffer with character data and attributes
+    for (int i = 0; i < bufferSize.X * bufferSize.Y; ++i) {
+        int value = screen[i][0];
 
-    // Write the entire buffer to the output stream at once
-    std::cout.write(buffer, buffer_size);
-    //printf(buffer);
+        // Calculate character based on screen data
+        //buffer[i].Char.UnicodeChar = (value != 0) ? static_cast<WCHAR>(value) : L' ';
+
+        // Apply texture overlay if specified
+        if (screen[i][2] != -1) {
+            int textureValue = dirtTexture[(7 * screen[i][2]) / 1000][(7 * screen[i][3]) / 1000];
+            // some of the characters dont work
+            buffer[i].Char.AsciiChar += static_cast<WCHAR>(characters[textureValue]);
+            //buffer[i].Char.UnicodeChar += static_cast<WCHAR>(characters[0]);
+        }
+        else {
+            buffer[i].Char.AsciiChar += L' ';;
+        }
+
+        // Set custom attributes based on your requirements (white text on black background)
+        WORD attributes = FOREGROUND_WHITE | BACKGROUND_BLACK;  // White text on black background
+
+        // Apply attributes to the current character in the buffer
+        buffer[i].Attributes = attributes;
+    }
+
+    // Write the buffer to the console screen buffer
+    WriteConsoleOutput(hConsole, buffer, bufferSize, bufferCoord, &writeRegion);
+
     delete[] buffer;
 }
 
@@ -844,6 +850,39 @@ int air_next_to(const std::unordered_map<std::tuple<int,int,int>, std::vector<ui
     } 
 }
 
+void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n_pz, const std::vector<std::vector<int>>& blocks) {
+    BoundingBox newPlayer = { px + n_px, py + n_py, pz + n_pz, 0.3 };
+    BoundingBox newPlayer2 = { px, py, pz, 0.3 };
+    for (std::vector<int> block : blocks) {
+        float bx = block[0];
+        float by = block[1];
+        float bz = block[2];
+
+        if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
+            (newPlayer.py - 4 * newPlayer.size < by + 1 && newPlayer.py + 4 * newPlayer.size > by) &&
+            (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
+            if ((newPlayer.px - n_px - newPlayer.size < bx + 1 && newPlayer.px - n_px + newPlayer.size > bx) &&
+                (newPlayer.py - 4 * newPlayer.size < by + 1 && newPlayer.py + 4 * newPlayer.size > by) &&
+                (newPlayer.pz - n_pz - newPlayer.size < bz + 1 && newPlayer.pz - n_pz + newPlayer.size > bz)) {
+                n_py = 0;
+            }
+
+            if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
+                (newPlayer.py - n_py - 4 * newPlayer.size < by + 1 && newPlayer.py - n_py + 4 * newPlayer.size > by) &&
+                (newPlayer.pz - n_pz - newPlayer.size < bz + 1 && newPlayer.pz - n_pz + newPlayer.size > bz)) {
+                n_px = 0;
+            }
+
+            if ((newPlayer.px - n_px - newPlayer.size < bx + 1 && newPlayer.px - n_px + newPlayer.size > bx) &&
+                (newPlayer.py - n_py - 4 * newPlayer.size < by + 1 && newPlayer.py - n_py + 4 * newPlayer.size > by) &&
+                (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
+                n_pz = 0;
+            }
+        }
+    }
+
+}
+
 std::vector<int> triangle_decoder(int encoded_triangle) {
     int triangle_index = (encoded_triangle >> 12) & (0b1111);
     /*for (int i = 0; i < 12; i++) {
@@ -1134,6 +1173,45 @@ double calculateTriangleArea_Point2_v(const Point2& A, const Point2& B, const Po
     return area;
 }
 
+std::vector<float> calculate_enemy_direction(float px, float py, float pz, float ex, float ey, float ez) {
+    float dx = ex - px;
+    float dy = ey - py;
+    float dz = ez - pz;
+    float length = sqrt(dx*dx+dy*dy+dz*dz);
+    dx /= length;
+    dy /= length;
+    dz /= length;
+    return { dx,dy,dz };
+}
+
+void entiti_physics(double& ex, double& ey, double& ez, float vx, float& vy, float vz, float delta_time, std::vector<std::vector<int>> blocks) {
+    float n_px = 0;
+    float n_py = 0;
+    float n_pz = 0;
+    vy = -5*delta_time;
+    float ty = -1;
+    float txz = 0;
+    collisions(ex, ey, ez, txz, ty, txz, blocks);
+
+    if (ty == 0) {
+
+        //std::cout << "JUMP" << std::endl;
+        //Sleep(1000);
+        vy = 5;
+    }
+    
+    float e_dx = delta_time * vx;
+    float e_dy = delta_time * vy;
+    float e_dz = delta_time * vz;
+    //std::cout << e_dx << " " << e_dy << " " << e_dz << std::endl;
+    collisions(ex, ey, ez, e_dx, e_dy, e_dz, blocks);
+    //std::cout << e_dx << " " << e_dy << " " << e_dz << std::endl;
+    ex += e_dx;
+    ey += e_dy;
+    ez += e_dz;
+    //std::cout <<"wx debug" << ex - 1024 * 1024 << std::endl;
+}
+
 void interpolate(Point2_ref& v1, const Point2 v2, float z) {
     float t = (z - v1.z) / (v2.z - v1.z);
     v1.x = v1.x + t * (v2.x - v1.x);
@@ -1151,7 +1229,7 @@ void update_pixel(int screen[characters_per_row*number_of_columns][4], const Poi
             //std::vector<float> UV_co = { 0,0 };
             std::tuple<float, float> UV_co = to_UV({ a.x,a.y,a.z, a.u, a.v }, { b.x,b.y,b.z, b.u, b.v }, { c.x,c.y,c.z, c.u, c.v }, x, y, z);
             int index = characters_per_row * (number_of_columns / 2 + static_cast<int>(y)) + (characters_per_row / 2 + x);
-            screen[index][0] = 20 + 2 * (triangle_index / 2);
+            screen[index][0] = 0 + 2 * (triangle_index / 2);
             screen[index][1] = static_cast<int>(z);
             screen[index][2] = static_cast<int>(1000 * std::get<0>(UV_co));
             screen[index][3] = static_cast<int>(1000 * std::get<1>(UV_co));
@@ -1170,6 +1248,14 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
     order_points(a, b, c);
     std::swap(c, a);
     if (calculateTriangleArea_Point2_v(a, b, c) <= 1) {
+        if (c.y - a.y <= 1 && max(abs(b.x-a.x),max(abs(c.x-b.x),abs(c.x - a.x))) <= 1) {
+            return;
+        }
+        if (abs(a.y) < number_of_columns / 2) {
+            for (float x = max(characters_per_row, min(a.x, min(b.x, c.x))); x < min(characters_per_row, max(a.x, max(b.x, max(-number_of_columns / 2, c.x)))); x++) {
+                update_pixel(screen, a, b, c, x, a.y, a.z, triangle_index);
+            }
+        }
         return;
     }
     //std::cout <<"start " << c.y << " " << number_of_columns / 2 << " " << max(abs(a.y), max(abs(b.y), abs(c.y))) << std::endl;
@@ -1411,85 +1497,52 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
             inside_2d_frustum(20, { x+16,y,z+16 }, { px - 16 * sin(x_rotation),py,pz - 16 * cos(x_rotation) }, x_rotation)) {
             //vectors.reserve(triangles.size());
             for (const auto& entry : triangles) {
-                chunk_coordinates.push_back(std::make_tuple(x, y, z));
-                vectors.push_back(entry.second);
-            }
-        }
-    }
-    //int a = 1024 * 1024;
-    //vectors = { {a,a,a,a + 1,a,a,a + 1,a,a + 1,10,0,0,1,0,1,1} };
-    //{ block[0] + vertices[triangle[0]][0], block[1] + vertices[triangle[0]][1], block[2] + vertices[triangle[0]][2], block[0] + vertices[triangle[1]][0], block[1] + vertices[triangle[1]][1], block[2] + vertices[triangle[1]][2], block[0] + vertices[triangle[2]][0], block[1] + vertices[triangle[2]][1], block[2] + vertices[triangle[2]][2], triangle[3], UV_vertices[0][0], UV_vertices[0][1],  UV_vertices[1 + UV_index][0],  UV_vertices[1 + UV_index][1],  UV_vertices[3][0],  UV_vertices[3][1] };
-
-    //std::sort(vectors.begin(), vectors.end(), compare_triangle_size);
-    int number_of_threads = 8;
-    //const Point3 player_vector = { sin(x_rotation), tan(y_rotation), cos(x_rotation) };
-    //std::cout << player_vector.x << " " << player_vector.y << " " << player_vector.z << std::endl;
-    //Sleep(10000);
-    std::cout << vectors.size() << std::endl;
-#pragma omp parallel for
-        for (int k = 0; k < number_of_threads; k++) {
-            int thread_id = omp_get_thread_num();
-            auto start_time = std::chrono::steady_clock::now();
-            for (int j = 0; j < vectors.size() / number_of_threads; ++j) {
-                //std::cout << j << std::endl;
-
-                float x, y, z;
-                std::tie(x, y, z) = chunk_coordinates[j*number_of_threads+k];
-                const int& triangle2 = vectors[j * number_of_threads + k];
-                //std::cout << "bää" << std::endl;
-                /*std::vector<int> triangle = triangle_decoder(triangle2);
-                
-                for (int i = 0; i < 3; i++) {
-                    triangle[3 * i+0] += x;
-                    triangle[3 * i+1] += y;
-                    triangle[3 * i+2] += z;
-
-                }*/
+                int triangle2 = entry.second;
                 Point3 triangle_normal = { 0,0,0 };
                 switch ((triangle2 >> 12) & 0b1111) {
-                    case 0:
-                        triangle_normal = {0,0,-1};
-                        break;
-                    case 1:
-                        triangle_normal = {0,0,-1};
-                        break;
-                    case 2:
-                        triangle_normal = { -1,0,0 };
-                        break;
-                    case 3:
-                        triangle_normal = { -1,0,0 };
-                        break;
-                    case 4:
-                        triangle_normal = {0,-1,0};
-                        break;
-                    case 5:
-                        triangle_normal = {0,-1,0};
-                        break;
-                    case 6:
-                        triangle_normal = { 0,0,1 };
-                        break;
-                    case 7:
-                        triangle_normal = { 0,0,1 };
-                        break;
-                    case 8:
-                        triangle_normal = { 1,0,0 };
-                        break;
-                    case 9:
-                        triangle_normal = { 1,0,0 };
-                        break;
-                    case 10:
-                        triangle_normal = { 0,1,0 };
-                        break;
-                    case 11:
-                        triangle_normal = { 0,1,0 };
-                        break;
+                case 0:
+                    triangle_normal = { 0,0,-1 };
+                    break;
+                case 1:
+                    triangle_normal = { 0,0,-1 };
+                    break;
+                case 2:
+                    triangle_normal = { -1,0,0 };
+                    break;
+                case 3:
+                    triangle_normal = { -1,0,0 };
+                    break;
+                case 4:
+                    triangle_normal = { 0,-1,0 };
+                    break;
+                case 5:
+                    triangle_normal = { 0,-1,0 };
+                    break;
+                case 6:
+                    triangle_normal = { 0,0,1 };
+                    break;
+                case 7:
+                    triangle_normal = { 0,0,1 };
+                    break;
+                case 8:
+                    triangle_normal = { 1,0,0 };
+                    break;
+                case 9:
+                    triangle_normal = { 1,0,0 };
+                    break;
+                case 10:
+                    triangle_normal = { 0,1,0 };
+                    break;
+                case 11:
+                    triangle_normal = { 0,1,0 };
+                    break;
 
                 }
                 int block_x = (triangle2 >> 0) & 0b1111;
                 int block_y = (triangle2 >> 4) & 0b1111;
                 int block_z = (triangle2 >> 8) & 0b1111;
                 int vertex_data = vertices[(triangle2 >> 12) & 0b1111];
-                int UV_data=0;
+                int UV_data = 0;
                 if (((triangle2 >> 12) & 0b1111) % 2 == 0) {
                     UV_data = 0b000111;
                 }
@@ -1501,15 +1554,9 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
                     block_y + y + ((vertex_data >> 1) & 0b1 + (vertex_data >> 4) & 0b1 + (vertex_data >> 7) & 0b1) / 3,
                     block_z + z + ((vertex_data >> 2) & 0b1 + (vertex_data >> 5) & 0b1 + (vertex_data >> 8) & 0b1) / 3
                 };
-                //Point3 triangle_co = { (triangle[0] + triangle[3] + triangle[6]) / 3,(triangle[1] + triangle[4] + triangle[7]) / 3 ,(triangle[2] + triangle[5] + triangle[8]) / 3 };
                 Point3 vector = { triangle_co.x - px, triangle_co.y - py, triangle_co.z - pz };
-                if ((vector.x * triangle_normal.x + vector.y * triangle_normal.y + vector.z * triangle_normal.z) <= 0.1 || true) {
-
-
-                    //int thread_id = omp_get_thread_num();
-                    //printf("Thread %d executing iteration %d\n", thread_id);
+                if ((vector.x * triangle_normal.x + vector.y * triangle_normal.y + vector.z * triangle_normal.z) <= 0) {
                     u++;
-                    //            std::cout << "hhuuhu" << std::endl;
                     float p_x_co1 = block_x + x + (vertex_data >> 0 & 0b1) - px;
                     float p_y_co1 = block_y + y + (vertex_data >> 1 & 0b1) - py;
                     float p_z_co1 = block_z + z + (vertex_data >> 2 & 0b1) - pz;
@@ -1554,82 +1601,17 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
                             p_y_co3 = constant_y * p_y_co3 / (p_z_co3 + constant);
                             p_z_co3 *= constant_x;
 
-                            //std::vector<std::vector<float>> rasterized_points = 
-                            //std::cout << "raster" << std::endl;
                             rasterize(screen, { p_x_co1,p_y_co1 ,p_z_co1, p_u_co1,p_v_co1 }, { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 }, { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 }, (triangle2 >> 12) & 0b1111);
-                            /*for (const std::vector<float>& p : rasterized_points) {
-                                float p_x_co = p[0];
-                                float p_y_co = p[1];
-                                float p_z_co = p[2];
-                                if (p_z_co > 1024 * 1024) {
-                                    std::cout << "uhriuhgruiiughriughweiugfewhif" << std::endl;
-                                }
-                                //std::cout << p_x_co << " " << p_y_co << std::endl;
-                                if (p_z_co != 0 && abs(1 * p_y_co) < number_of_columns / 2 && abs(1 * p_x_co) < characters_per_row / 2) {
-                                    //std::cout << characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co<<"\n";
-                                    if (p_z_co > 0 && p_z_co < screen[characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co][1]) {
-                                        //std::vector<float> UV_co = { 0,0 };
-                                        std::tuple<float,float> UV_co = to_UV({ p_x_co1,p_y_co1,p_z_co1, p_u_co1, p_v_co1 }, { p_x_co2,p_y_co2,p_z_co2, p_u_co2, p_v_co2 }, { p_x_co3,p_y_co3,p_z_co3 , p_u_co3, p_v_co3 }, p_x_co, p_y_co, p_z_co);
-                                        int index = characters_per_row * static_cast<int>(p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + p_x_co;
-                                        screen[index] = { 20+2*(((triangle2 >> 12) & 0b1111) / 2),static_cast<int>(p_z_co), static_cast<int>(1000 * std::get<0>(UV_co)), static_cast<int>(1000 * std::get<1>(UV_co)) };
-                                    }
-                                }
-                            }*/
                         }
                     }
                 }
             }
-            auto end_time = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-            //CLIP TRIANGLES TO POSITIVE Z
-            // //CLIP TRIANGLES TO POSITIVE Z
-            // //CLIP TRIANGLES TO POSITIVE Z
-            // //CLIP TRIANGLES TO POSITIVE Z
-            // 
-            //std::cout << "Thread " << thread_id << " took " << duration << " milliseconds" << std::endl;
-        }
-        if (GetAsyncKeyState('U') & 0x8000) {
-            Sleep(100000);
-        }
-        //CLIP TRIANGLES TO POSITIVE Z
-        // //CLIP TRIANGLES TO POSITIVE Z
-        // //CLIP TRIANGLES TO POSITIVE Z
-        // //CLIP TRIANGLES TO POSITIVE Z
-        //Sleep(1000);
-}
-
-void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n_pz, const std::vector<std::vector<int>>& blocks) {
-    BoundingBox newPlayer = { px + n_px, py + n_py, pz + n_pz, 0.5 };
-    BoundingBox newPlayer2 = { px, py, pz, 0.5 };
-    for (std::vector<int> block : blocks) {
-        float bx = block[0];
-        float by = block[1];
-        float bz = block[2];
-
-        if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
-            (newPlayer.py - 2*newPlayer.size < by + 1 && newPlayer.py + 2*newPlayer.size > by) &&
-            (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
-            if ((newPlayer.px - n_px - newPlayer.size < bx + 1 && newPlayer.px - n_px + newPlayer.size > bx) &&
-                (newPlayer.py -2* newPlayer.size < by + 1 && newPlayer.py + 2*newPlayer.size > by) &&
-                (newPlayer.pz - n_pz - newPlayer.size < bz + 1 && newPlayer.pz - n_pz + newPlayer.size > bz)) {
-                n_py = 0;
-            }
-
-            if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
-                (newPlayer.py - n_py - 2 * newPlayer.size < by + 1 && newPlayer.py - n_py + 2 * newPlayer.size > by) &&
-                (newPlayer.pz - n_pz - newPlayer.size < bz + 1 && newPlayer.pz - n_pz + newPlayer.size > bz)) {
-                n_px = 0;
-            }
-
-            if ((newPlayer.px - n_px - newPlayer.size < bx + 1 && newPlayer.px - n_px + newPlayer.size > bx) &&
-                (newPlayer.py - n_py - 2 * newPlayer.size < by + 1 && newPlayer.py - n_py + 2 * newPlayer.size > by) &&
-                (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
-                n_pz = 0;
-            }
+            
         }
     }
-    
 }
+
+
 
 void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& pz, float delta_time, std::vector<std::vector<int>> blocks) {
     float n_px = 0;
@@ -1706,7 +1688,7 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
     //n_py--;
     //std::cout << "py" << n_py << std::endl;
     collisions(px, py, pz, n_px, n_py, n_pz, blocks);
-    std::cout << n_py << std::endl;
+    //std::cout << n_py << std::endl;
     
     px += n_px;
     py += n_py;
@@ -2049,6 +2031,22 @@ int main() {
     int(*screen)[4] = new int[characters_per_row * number_of_columns][4];
     //std::cout << "vey pre" << std::endl;
     fill_screen(screen);
+    double ex=px+10;
+    double ey=py;
+    double ez=pz+10;
+    float vx=0;
+    float vy=0;
+    float vz=0;
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_FONT_INFOEX fontInfo;
+    fontInfo.cbSize = sizeof(fontInfo);
+    GetCurrentConsoleFontEx(hConsole, FALSE, &fontInfo);
+
+    // Set the console font to a monospaced font like "Consolas"
+    wcscpy_s(fontInfo.FaceName, L"Consolas");
+    fontInfo.dwFontSize.X = 8; // Set desired width (in pixels)
+    fontInfo.dwFontSize.Y = 16; // Set desired height (in pixels)
+    SetCurrentConsoleFontEx(hConsole, FALSE, &fontInfo);
     //std::cout << "pre" << std::endl;
     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual> map_chunks;
     std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual> map_triangles;
@@ -2143,7 +2141,7 @@ int main() {
         std::chrono::duration<float> delta_seconds = current_time - last_time;
         last_time = current_time;
         float delta_time = delta_seconds.count();
-        std::cout << delta_time << '\n';
+        //std::cout << delta_time << '\n';
 
         //BLOCK BREAKING
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
@@ -2168,12 +2166,15 @@ int main() {
                 block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
             }
         }
-        //std::cout << "controls" << std::endl;
+        std::vector<float> entiti_direction = calculate_enemy_direction(ex, ey, ez, px, py, pz);
+        //std::cout << entiti_direction[0] << " " << entiti_direction[2] << std::endl;
+        entiti_physics(ex, ey, ez, entiti_direction[0], vy, entiti_direction[2], min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, ex, ey, ez));
+        int a = 1024 * 1024;
+        //std::cout <<"p co: " << px-a << " " << py-a << " " << pz-a << std::endl;
+        //std::cout << "e co: " << ex-a << " " << ey-a << " " << ez-a << std::endl;
+        //Sleep(30);
         controls(x_rotation, y_rotation, px, py, pz, min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
-        //std::cout << "update" << std::endl;
         update_screen(screen, map_triangles, x_rotation, y_rotation, px, py, pz);
-        //Sleep(1000);
-        //std::cout << "draw" << std::endl;
         draw_screen(screen);
         
     }
