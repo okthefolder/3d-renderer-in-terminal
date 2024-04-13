@@ -67,7 +67,9 @@ struct BoundingBox {
     float px;
     float py;
     float pz;
-    float size; // Size of the bounding box (assuming it's a cube)
+    float sizex;
+    float sizey;
+    float sizez;
 };
 
 struct Point2 {
@@ -136,6 +138,16 @@ struct TupleEqual2 {
     }
 };
 
+struct Slime {
+    double x;
+    double y;
+    double z;
+    double dx;
+    double dy;
+    double dz;
+    double size;
+};
+
 const int world_x = 16;
 const int world_y = 16;
 const int world_z = 16;
@@ -147,8 +159,8 @@ int unique_blocks = 1;
 // for 2 (940, 238)
 // for 3 (626,160)
 //keep the numbers even
-const int characters_per_row = 1800;
-const int number_of_columns = 400;
+const int characters_per_row = 1880;
+const int number_of_columns = 480;
 const float FOV = 2*M_PI / 3;  // Field of view in degrees
 const float ASPECT_RATIO = static_cast<float>(characters_per_row) / static_cast<float>(number_of_columns);  // Width divided by height
 float dy = 0;
@@ -500,7 +512,7 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][4]) {
             //buffer[i].Char.UnicodeChar += static_cast<WCHAR>(characters[0]);
         }
         else {
-            buffer[i].Char.AsciiChar += L' ';;
+            //buffer[i].Char.AsciiChar += L' ';;
         }
 
         // Set custom attributes based on your requirements (white text on black background)
@@ -514,6 +526,11 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][4]) {
     WriteConsoleOutput(hConsole, buffer, bufferSize, bufferCoord, &writeRegion);
 
     delete[] buffer;
+}
+double calculateTriangleArea_Point2_v(const Point2& A, const Point2& B, const Point2& C) {
+    // Calculate the determinant of the matrix formed by the vertices
+    double area = 0.5 * std::abs(A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
+    return area;
 }
 
 float distanceToPlane(Point3 point, float angleX, float angleY) {
@@ -744,24 +761,22 @@ float area_of_3d_triangle(const Point2& a, const Point2& b, const Point2& c) {
     return area;
 }
 
-std::tuple<float, float> to_UV(const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z) {
+std::tuple<float, float> to_UV(const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const float area_abc) {
     Point2 p = { x,y,z };
-    const float area_abc = area_of_3d_triangle(a, b, c);
+    
     if (area_abc < 1) {
         return std::make_tuple(0, 0);
     }
-
-
-    const float u = area_of_3d_triangle(b, c, p) / area_abc;
-    const float v = area_of_3d_triangle(a, c, p) / area_abc;
+    const float u = calculateTriangleArea_Point2_v(b, c, p) / area_abc;
+    const float v = calculateTriangleArea_Point2_v(a, c, p) / area_abc;
     const float w = 1 - u - v;
-    //float uva = max(0.0f, min(1.0f, z*(u * a.u/a.z + v * b.u/b.z + w * c.u/c.z)));
-    //float uvb = max(0.0f, min(1.0f, z*(u * a.v/a.z + v * b.v/b.z + w * c.v/c.z)));
-    const float uva = max(0.0f,min(1.0f,(u * a.u + v * b.u + w * c.u)));
-    const float uvb = max(0.0f,min(1.0f,(u * a.v + v * b.v + w * c.v)));
-    //std::cout << (u * a.u + v * b.u + w * c.u) << " " << (u * a.v + v * b.v + w * c.v) << std::endl;
-    //std::cout << a.u << " " << b.u << " " << c.u << " " << a.v << " " << b.v << " " << c.v << std::endl;
-    //Sleep(10);
+    const float perspective_correction = z/(u * a.z + v * b.z + w * c.z);
+    float uva = perspective_correction * (u * a.u + v * b.u + w * c.u);
+    float uvb = perspective_correction * (u * a.v + v * b.v + w * c.v);
+    if (uva < 0.0f) uva = 0.0f;
+    if (uva > 1.0f) uva = 1.0f;
+    if (uvb < 0.0f) uvb = 0.0f;
+    if (uvb > 1.0f) uvb = 1.0f;
     return std::make_tuple( uva, uvb );
 }
 
@@ -850,37 +865,43 @@ int air_next_to(const std::unordered_map<std::tuple<int,int,int>, std::vector<ui
     } 
 }
 
-void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n_pz, const std::vector<std::vector<int>>& blocks) {
-    BoundingBox newPlayer = { px + n_px, py + n_py, pz + n_pz, 0.3 };
-    BoundingBox newPlayer2 = { px, py, pz, 0.3 };
-    for (std::vector<int> block : blocks) {
+void collisions(float px, float py, float pz, float& n_px, float& n_py, float& n_pz, float sizex, float sizey, float sizez, const std::vector<std::vector<int>>& blocks) {
+    BoundingBox newPlayer = { px, py, pz, sizex, sizey, sizez };
+
+    for (const auto& block : blocks) {
         float bx = block[0];
         float by = block[1];
         float bz = block[2];
 
-        if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
-            (newPlayer.py - 4 * newPlayer.size < by + 1 && newPlayer.py + 4 * newPlayer.size > by) &&
-            (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
-            if ((newPlayer.px - n_px - newPlayer.size < bx + 1 && newPlayer.px - n_px + newPlayer.size > bx) &&
-                (newPlayer.py - 4 * newPlayer.size < by + 1 && newPlayer.py + 4 * newPlayer.size > by) &&
-                (newPlayer.pz - n_pz - newPlayer.size < bz + 1 && newPlayer.pz - n_pz + newPlayer.size > bz)) {
-                n_py = 0;
-            }
+        // Calculate boundaries for the block
+        float blockMinX = bx;
+        float blockMaxX = bx + 1;
+        float blockMinY = by;
+        float blockMaxY = by + 1;
+        float blockMinZ = bz;
+        float blockMaxZ = bz + 1;
 
-            if ((newPlayer.px - newPlayer.size < bx + 1 && newPlayer.px + newPlayer.size > bx) &&
-                (newPlayer.py - n_py - 4 * newPlayer.size < by + 1 && newPlayer.py - n_py + 4 * newPlayer.size > by) &&
-                (newPlayer.pz - n_pz - newPlayer.size < bz + 1 && newPlayer.pz - n_pz + newPlayer.size > bz)) {
-                n_px = 0;
-            }
+        // Check collision in Y direction
+        if ((newPlayer.px - newPlayer.sizex < blockMaxX && newPlayer.px + newPlayer.sizex > blockMinX) &&
+            (newPlayer.py+n_py -  newPlayer.sizey < blockMaxY && newPlayer.py+n_py + newPlayer.sizey > blockMinY) &&
+            (newPlayer.pz - newPlayer.sizez < blockMaxZ && newPlayer.pz + newPlayer.sizez > blockMinZ)) {
+            n_py = 0; // Prevent movement in Y direction
+        }
 
-            if ((newPlayer.px - n_px - newPlayer.size < bx + 1 && newPlayer.px - n_px + newPlayer.size > bx) &&
-                (newPlayer.py - n_py - 4 * newPlayer.size < by + 1 && newPlayer.py - n_py + 4 * newPlayer.size > by) &&
-                (newPlayer.pz - newPlayer.size < bz + 1 && newPlayer.pz + newPlayer.size > bz)) {
-                n_pz = 0;
-            }
+        // Check collision in X direction
+        if ((newPlayer.px + n_px - newPlayer.sizex < blockMaxX && newPlayer.px + n_px + newPlayer.sizex > blockMinX) &&
+            (newPlayer.py - newPlayer.sizey < blockMaxY && newPlayer.py + newPlayer.sizey > blockMinY) &&
+            (newPlayer.pz - newPlayer.sizez < blockMaxZ && newPlayer.pz + newPlayer.sizez > blockMinZ)) {
+            n_px = 0; // Prevent movement in X direction
+        }
+
+        // Check collision in Z direction
+        if ((newPlayer.px - newPlayer.sizex < blockMaxX && newPlayer.px + newPlayer.sizex > blockMinX) &&
+            (newPlayer.py - newPlayer.sizey < blockMaxY && newPlayer.py + newPlayer.sizey > blockMinY) &&
+            (newPlayer.pz+ n_pz - newPlayer.sizez < blockMaxZ && newPlayer.pz+n_pz + newPlayer.sizez > blockMinZ)) {
+            n_pz = 0; // Prevent movement in Z direction
         }
     }
-
 }
 
 std::vector<int> triangle_decoder(int encoded_triangle) {
@@ -1167,44 +1188,47 @@ bool inside_2d_frustum(float fardist, Point3 point, Point3 p_co, float x_rotatio
     return ((x0 * h + z0 * d > 0) && (x0 * h - z0 * d > 0));
 }
 
-double calculateTriangleArea_Point2_v(const Point2& A, const Point2& B, const Point2& C) {
-    // Calculate the determinant of the matrix formed by the vertices
-    double area = 0.5 * std::abs(A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
-    return area;
-}
 
-std::vector<float> calculate_enemy_direction(float px, float py, float pz, float ex, float ey, float ez) {
-    float dx = ex - px;
-    float dy = ey - py;
-    float dz = ez - pz;
-    float length = sqrt(dx*dx+dy*dy+dz*dz);
+
+std::vector<float> calculate_enemy_direction(Slime slime, float px, float py, float pz) {
+    float dx = slime.x - px;
+    float dz = slime.z - pz;
+    float length = sqrt(dx*dx+dz*dz);
     dx /= length;
-    dy /= length;
     dz /= length;
-    return { dx,dy,dz };
+    return { dx,dz };
 }
 
-void entiti_physics(double& ex, double& ey, double& ez, float vx, float& vy, float vz, float delta_time, std::vector<std::vector<int>> blocks) {
+void entiti_physics(Slime& slime, float delta_time, std::vector<std::vector<int>> blocks) {
     float n_px = 0;
     float n_py = 0;
     float n_pz = 0;
-    vy = -5*delta_time;
-    float ty = -1;
-    float txz = 0;
-    collisions(ex, ey, ez, txz, ty, txz, blocks);
+    double& ex = slime.x;
+    double& ey = slime.y;
+    double& ez = slime.z;
+    double& vx = slime.dx;
+    double& vy = slime.dy;
+    double& vz = slime.dz;
 
+    //vy = -5*delta_time;
+    float ty = -2*delta_time;
+    float txz = 0;
+    collisions(ex, ey, ez, txz, ty, txz, 0.5,0.5,0.5, blocks);
+    if (vy > -10) {
+        vy -= 1*delta_time;
+    }
     if (ty == 0) {
 
         //std::cout << "JUMP" << std::endl;
         //Sleep(1000);
-        vy = 5;
+        vy = 1.5;
     }
     
     float e_dx = delta_time * vx;
     float e_dy = delta_time * vy;
     float e_dz = delta_time * vz;
     //std::cout << e_dx << " " << e_dy << " " << e_dz << std::endl;
-    collisions(ex, ey, ez, e_dx, e_dy, e_dz, blocks);
+    collisions(ex, ey, ez, e_dx, e_dy, e_dz,0.5,0.5,0.5, blocks);
     //std::cout << e_dx << " " << e_dy << " " << e_dz << std::endl;
     ex += e_dx;
     ey += e_dy;
@@ -1221,13 +1245,15 @@ void interpolate(Point2_ref& v1, const Point2 v2, float z) {
     v1.v = v1.v + t * (v2.v - v1.v);
 }
 
-void update_pixel(int screen[characters_per_row*number_of_columns][4], const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const int& triangle_index) {
+void update_pixel(int screen[characters_per_row*number_of_columns][4], const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const int& triangle_index, const float area_abc) {
     //std::cout << x << " " << y << " " << z << std::endl;
     //if (z != 0 && abs(1 * y) < number_of_columns / 2 && abs(1 * x) < characters_per_row / 2) {
         //std::cout << characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co<<"\n";
         if (z > 0 && z < screen[characters_per_row * (number_of_columns/2+static_cast<int>(y)) + (characters_per_row / 2 + static_cast<int>(x))][1]) {
             //std::vector<float> UV_co = { 0,0 };
-            std::tuple<float, float> UV_co = to_UV({ a.x,a.y,a.z, a.u, a.v }, { b.x,b.y,b.z, b.u, b.v }, { c.x,c.y,c.z, c.u, c.v }, x, y, z);
+            std::tuple<float, float> UV_co = to_UV({ a.x,a.y,a.z, a.u, a.v }, { b.x,b.y,b.z, b.u, b.v }, { c.x,c.y,c.z, c.u, c.v }, x, y, z, area_abc);
+            //std::tuple<float, float> UV_co = std::make_tuple(0,0);
+
             int index = characters_per_row * (number_of_columns / 2 + static_cast<int>(y)) + (characters_per_row / 2 + x);
             screen[index][0] = 0 + 2 * (triangle_index / 2);
             screen[index][1] = static_cast<int>(z);
@@ -1253,7 +1279,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
         }
         if (abs(a.y) < number_of_columns / 2) {
             for (float x = max(characters_per_row, min(a.x, min(b.x, c.x))); x < min(characters_per_row, max(a.x, max(b.x, max(-number_of_columns / 2, c.x)))); x++) {
-                update_pixel(screen, a, b, c, x, a.y, a.z, triangle_index);
+                update_pixel(screen, a, b, c, x, a.y, a.z, triangle_index, calculateTriangleArea_Point2_v(a, b, c));
             }
         }
         return;
@@ -1342,7 +1368,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
     else {
         //std::cout << "rrrgrtg" << std::endl;
 
-
+        const float area_abc = calculateTriangleArea_Point2_v(a, b, c);
         if (abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) <= 2) {
             //return { { a.x,a.y,a.z } };
         }
@@ -1409,7 +1435,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
                             }
                             */
 
-                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index);
+                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index, area_abc);
 
                             //rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i])});
                         }
@@ -1432,7 +1458,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
                                 screen[index] = { 20 + 2 * (triangle_index / 2),static_cast<int>(z), static_cast<int>(1000 * std::get<0>(UV_co)), static_cast<int>(1000 * std::get<1>(UV_co)) };
                             }*/
                           //  std::cout << "end " << c.y << std::endl;
-                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index);
+                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index, area_abc);
                             //rasterized.push_back({ x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) });
                         }
                     }
@@ -1450,7 +1476,16 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
     //return rasterized;
 }
 
-void update_screen(int screen[characters_per_row*number_of_columns][4], const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, const float x_rotation, const float y_rotation, const float px, const float py, const float pz) {
+void add_perspective(float& p_x_co1, float& p_y_co1,float& p_z_co1) {
+    float constant_x = number_of_columns * 4;
+    float constant_y = number_of_columns * 2;
+    float constant = 2;
+    p_x_co1 = constant_x * p_x_co1 / (p_z_co1 + constant);
+    p_y_co1 = constant_y * p_y_co1 / (p_z_co1 + constant);
+    p_z_co1 *= constant_x;
+}
+
+void update_screen(int screen[characters_per_row*number_of_columns][4], const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, std::vector<Slime> slimes, const float x_rotation, const float y_rotation, const float px, const float py, const float pz) {
    // screen.assign(characters_per_row * number_of_columns, { 0, 1024 * 1024 * 1024,-1,-1 });
     fill_screen(screen);
     int u = 0;
@@ -1555,7 +1590,7 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
                     block_z + z + ((vertex_data >> 2) & 0b1 + (vertex_data >> 5) & 0b1 + (vertex_data >> 8) & 0b1) / 3
                 };
                 Point3 vector = { triangle_co.x - px, triangle_co.y - py, triangle_co.z - pz };
-                if ((vector.x * triangle_normal.x + vector.y * triangle_normal.y + vector.z * triangle_normal.z) <= 0) {
+                if ((vector.x * triangle_normal.x + vector.y * triangle_normal.y + vector.z * triangle_normal.z) <= 0 || true) {
                     u++;
                     float p_x_co1 = block_x + x + (vertex_data >> 0 & 0b1) - px;
                     float p_y_co1 = block_y + y + (vertex_data >> 1 & 0b1) - py;
@@ -1609,6 +1644,26 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
             
         }
     }
+
+    for (Slime& slime : slimes) {
+        float slime_x = slime.x-px-0.5 * slime.size;
+        float slime_y = slime.y-py-0.5 * slime.size;
+        float slime_z = slime.z-pz-0.5 * slime.size;
+        for (int index : vertices) {
+            Point2 a = { slime_x + ((index >> 0) & 1), slime_y + ((index >> 1) & 1), slime_z + ((index >> 2) & 1) ,0,0 };
+            Point2 b = { slime_x + ((index >> 3) & 1), slime_y + ((index >> 4) & 1), slime_z + ((index >> 5) & 1) ,0,0 };
+            Point2 c = { slime_x + ((index >> 6) & 1), slime_y + ((index >> 7) & 1), slime_z + ((index >> 8) & 1) ,0,0 };
+            add_rotation(x_rotation, y_rotation - M_PI / 2, a.x, a.y, a.z);
+            add_rotation(x_rotation, y_rotation - M_PI / 2, b.x, b.y, b.z);
+            add_rotation(x_rotation, y_rotation - M_PI / 2, c.x, c.y, c.z);
+
+            add_perspective(a.x, a.y, a.z);
+            add_perspective(b.x, b.y, b.z);
+            add_perspective(c.x, c.y, c.z);
+
+            rasterize(screen, a, b, c, 1);
+        }
+    }
 }
 
 
@@ -1645,7 +1700,7 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
     else {
         ty = max(1,dy) * delta_time;
     }
-    collisions(px, py, pz, txz, ty, txz, blocks);
+    collisions(px, py, pz, txz, ty, txz,0.3,1.5,0.3, blocks);
     if (ty == 0) {
         //std::cout << "collision" << std::endl;
         //n_py = 0.1;
@@ -1687,7 +1742,7 @@ void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& 
     }
     //n_py--;
     //std::cout << "py" << n_py << std::endl;
-    collisions(px, py, pz, n_px, n_py, n_pz, blocks);
+    collisions(px, py, pz, n_px, n_py, n_pz,0.3,1.5,0.3, blocks);
     //std::cout << n_py << std::endl;
     
     px += n_px;
@@ -2088,7 +2143,11 @@ int main() {
     std::vector<std::vector<int>> UV_vertices = { {0,0},{1,0},{0,1},{1,1} };
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
-    int render_distance = 8;
+    int render_distance = 4;
+    double a = 1024 * 1024;
+    std::vector<Slime> slimes;
+    Slime slime = { a,a + 10,a+10,0,0,0,1.0f };
+    slimes.push_back(slime);
     //std::cout << "start" << std::endl;
     while (true) {
         //std::cout << "start" << std::endl;
@@ -2141,7 +2200,7 @@ int main() {
         std::chrono::duration<float> delta_seconds = current_time - last_time;
         last_time = current_time;
         float delta_time = delta_seconds.count();
-        //std::cout << delta_time << '\n';
+        std::cout << delta_time << '\n';
 
         //BLOCK BREAKING
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
@@ -2166,15 +2225,17 @@ int main() {
                 block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
             }
         }
-        std::vector<float> entiti_direction = calculate_enemy_direction(ex, ey, ez, px, py, pz);
-        //std::cout << entiti_direction[0] << " " << entiti_direction[2] << std::endl;
-        entiti_physics(ex, ey, ez, entiti_direction[0], vy, entiti_direction[2], min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, ex, ey, ez));
-        int a = 1024 * 1024;
-        //std::cout <<"p co: " << px-a << " " << py-a << " " << pz-a << std::endl;
-        //std::cout << "e co: " << ex-a << " " << ey-a << " " << ez-a << std::endl;
-        //Sleep(30);
+        for (int i = 0; i < slimes.size(); i++) {
+            std::vector<float> entiti_direction = calculate_enemy_direction(slimes[i], px, py, pz);
+            slimes[i].dx = -entiti_direction[0];
+            slimes[i].dz = -entiti_direction[1];
+            //std::cout << slimes[i].x-a << " " << slimes[i].y-a << " " << slimes[i].z-a << " " << std::endl;
+            //Sleep(100);
+            entiti_physics(slimes[i], min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, slimes[i].x, slimes[i].y, slimes[i].z));
+            //slimes[0] = { ex,ey,ez,0,0,0,slimes[0].size };
+        }
         controls(x_rotation, y_rotation, px, py, pz, min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
-        update_screen(screen, map_triangles, x_rotation, y_rotation, px, py, pz);
+        update_screen(screen, map_triangles, slimes, x_rotation, y_rotation, px, py, pz);
         draw_screen(screen);
         
     }
