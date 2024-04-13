@@ -70,6 +70,7 @@ struct BoundingBox {
     float sizex;
     float sizey;
     float sizez;
+    int texture_id;
 };
 
 struct Point2 {
@@ -146,6 +147,7 @@ struct Slime {
     double dy;
     double dz;
     double size;
+    int texture_id;
 };
 
 const int world_x = 16;
@@ -185,6 +187,152 @@ std::vector<std::vector<int>> dirtTexture = {
     {3, 1, 2, 3, 1, 2, 2, 1},
     {2, 2, 3, 1, 2, 1, 3, 1},
     {1, 3, 1, 2, 3, 2, 1, 3}
+};
+
+std::vector<std::vector<std::vector<int>>> textures = 
+{
+
+    //0 null
+    {
+        {
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        },
+        {
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        },
+        {
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        },
+        {
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        },
+        {
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        },
+        {
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        },
+
+
+    },
+
+    //1 dirt
+    {
+        {
+            1, 3, 2, 2, 1, 3, 2, 1,
+            2, 2, 1, 3, 1, 2, 3, 1,
+            3, 1, 2, 2, 3, 1, 1, 2,
+            2, 3, 1, 1, 2, 3, 1, 2,
+            1, 2, 3, 2, 1, 1, 2, 3,
+            3, 1, 2, 3, 1, 2, 2, 1,
+            2, 2, 3, 1, 2, 1, 3, 1,
+            1, 3, 1, 2, 3, 2, 1, 3
+        },
+
+        {
+            1, 3, 2, 2, 1, 3, 2, 1,
+            2, 2, 1, 3, 1, 2, 3, 1,
+            3, 1, 2, 2, 3, 1, 1, 2,
+            2, 3, 1, 1, 2, 3, 1, 2,
+            1, 2, 3, 2, 1, 1, 2, 3,
+            3, 1, 2, 3, 1, 2, 2, 1,
+            2, 2, 3, 1, 2, 1, 3, 1,
+            1, 3, 1, 2, 3, 2, 1, 3
+        },
+
+        {
+            1, 3, 2, 2, 1, 3, 2, 1,
+            2, 2, 1, 3, 1, 2, 3, 1,
+            3, 1, 2, 2, 3, 1, 1, 2,
+            2, 3, 1, 1, 2, 3, 1, 2,
+            1, 2, 3, 2, 1, 1, 2, 3,
+            3, 1, 2, 3, 1, 2, 2, 1,
+            2, 2, 3, 1, 2, 1, 3, 1,
+            1, 3, 1, 2, 3, 2, 1, 3
+        },
+        {
+            1, 3, 2, 2, 1, 3, 2, 1,
+            2, 2, 1, 3, 1, 2, 3, 1,
+            3, 1, 2, 2, 3, 1, 1, 2,
+            2, 3, 1, 1, 2, 3, 1, 2,
+            1, 2, 3, 2, 1, 1, 2, 3,
+            3, 1, 2, 3, 1, 2, 2, 1,
+            2, 2, 3, 1, 2, 1, 3, 1,
+            1, 3, 1, 2, 3, 2, 1, 3
+        },
+
+        {
+            1, 3, 2, 2, 1, 3, 2, 1,
+            2, 2, 1, 3, 1, 2, 3, 1,
+            3, 1, 2, 2, 3, 1, 1, 2,
+            2, 3, 1, 1, 2, 3, 1, 2,
+            1, 2, 3, 2, 1, 1, 2, 3,
+            3, 1, 2, 3, 1, 2, 2, 1,
+            2, 2, 3, 1, 2, 1, 3, 1,
+            1, 3, 1, 2, 3, 2, 1, 3
+        },
+
+        {
+            1, 3, 2, 2, 1, 3, 2, 1,
+            2, 2, 1, 3, 1, 2, 3, 1,
+            3, 1, 2, 2, 3, 1, 1, 2,
+            2, 3, 1, 1, 2, 3, 1, 2,
+            1, 2, 3, 2, 1, 1, 2, 3,
+            3, 1, 2, 3, 1, 2, 2, 1,
+            2, 2, 3, 1, 2, 1, 3, 1,
+            1, 3, 1, 2, 3, 2, 1, 3
+        }
+    }
+
+
 };
 
 
@@ -254,12 +402,13 @@ std::vector<float> getDeerministicRandomVector(int x, int y) {
 
     return { vx, vy };
 }
-void fill_screen(int screen[characters_per_row * number_of_columns][4]) {
+void fill_screen(int screen[characters_per_row * number_of_columns][5]) {
     for (int i = 0; i < characters_per_row * number_of_columns; i++) {
         screen[i][0] = 0;
         screen[i][1] = 1000000000;
         screen[i][2] = -1;
         screen[i][3] = -1;
+        screen[i][4] = 0;
     }
 }
 
@@ -400,7 +549,7 @@ std::vector<uint64_t> make_chunk(int cx, int cy, int cz) {
                     //if (num1+cx*16 == 1024 * 1024 && num3+cz*16 == 1024 * 1024) {
                         //std::cout << "eroiern2" << std::endl;
                         //Sleep(5000);
-                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b1111) << (4 * x));
+                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b0001) << (4 * x));
                     //}
                     //std::cout << chunk[16 * num3 + num2 + i] << std::endl;
                 }
@@ -410,75 +559,21 @@ std::vector<uint64_t> make_chunk(int cx, int cy, int cz) {
     return chunk;
 }
 
-/*void prepare_points(std::vector<std::vector<int>>& points) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
-    // Define the range [0.0f, 1.0f) for the distribution (float)
-    std::uniform_int_distribution<int> dist(-100, 100);
-
-    // Generate and print 3 random floating-point numbers (float)
-    std::vector<std::vector<float>> perlin_noise = perlin_noise_generation(0.5, 0.5);
-    std::vector<std::vector<int>> chunk;
-    points.reserve(128*128*20+10);
-    for (int x = 1; x < 16 * 16-1; ++x) {
-        for (int z = 1; z < 16 * 16-1; ++z) {
-            int num1 = x;
-            int num2 = 8*16+perlin_noise[x][z] * 20;
-            int num3 = z;
-            for (int i = -1; i <20 ; i++) {
-                points.push_back({ num1,num2+i,num3,num1 + 1,num2+i + 1,num3 + 1 });
-            }
-        }
-    }
-}*/
-
 void make_cuboid(std::vector<std::vector<int>>& vertices, const int& x1, const int& y1, const int& z1, const int& x2, const int& y2, const int& z2) {
-    //std::vector<std::vector<int>> vertices;
-    // Define the eight vertices of the cuboid
-    /*vertices.push_back({x1, y1, z1}); // 0
-    vertices.push_back({ x2, y1, z1 }); // 1
-    vertices.push_back({ x2, y2, z1 }); // 2
-    vertices.push_back({ x1, y2, z1 }); // 3
-    vertices.push_back({ x1, y1, z2 }); // 4
-    vertices.push_back({ x2, y1, z2 }); // 5
-    vertices.push_back({ x2, y2, z2 }); // 6
-    vertices.push_back({ x1, y2, z2 }); // 7*/
     vertices = { { x1, y1, z1 } ,{ x2, y1, z1 },{ x2, y2, z1 },{ x1, y2, z1 },{ x1, y1, z2 }, { x2, y1, z2 },{ x2, y2, z2 },{ x1, y2, z2 } };
-
-    //return vertices;
-
 }
-
-/*void cuboid_to_vertices(std::vector<std::vector<int>>& points) {
-    std::vector<std::vector<int>> vertices;
-    for (std::vector<int> p : points) {
-        for (std::vector<int> vertice : make_cuboid(p[0], p[1], p[2], p[3], p[4], p[5])) {
-            vertices.push_back(vertice);
-        }
-    }
-    points = vertices;
-}*/
 
 void add_rotation(float x_rotation, float y_rotation, float& x_co, float& y_co, float& z_co){
     float new_x_co = x_co*std::cos(x_rotation)-z_co*std::sin(x_rotation);
     float new_z_co = x_co * std::sin(x_rotation) + z_co * std::cos(x_rotation);
     float new_y_co = y_co * std::sin(y_rotation) + new_z_co * std::cos(y_rotation);
     new_z_co = y_co * std::cos(y_rotation) - new_z_co * std::sin(y_rotation);
-    /*if (new_z_co != 0) {
-        x_co = (new_x_co / new_z_co)*100;
-        y_co = (new_y_co / new_z_co)*100;
-    }
-    else {
-        x_co = 999999;
-        y_co = 999999;
-    }*/
     x_co = new_x_co;
     y_co = new_y_co;
     z_co = new_z_co;
 }
 
-void draw_screen(const int screen[characters_per_row * number_of_columns][4]) {
+void draw_screen(const int screen[characters_per_row * number_of_columns][5]) {
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
     // Get console screen buffer info
@@ -506,7 +601,7 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][4]) {
 
         // Apply texture overlay if specified
         if (screen[i][2] != -1) {
-            int textureValue = dirtTexture[(7 * screen[i][2]) / 1000][(7 * screen[i][3]) / 1000];
+            int textureValue = textures[screen[i][4]/6][screen[i][4]%6][7*((screen[i][2]*7) / 1000) + (screen[i][3] * 7) / 1000];
             // some of the characters dont work
             buffer[i].Char.AsciiChar += static_cast<WCHAR>(characters[textureValue]);
             //buffer[i].Char.UnicodeChar += static_cast<WCHAR>(characters[0]);
@@ -983,12 +1078,13 @@ std::vector<int> triangle_decoder(int encoded_triangle) {
     return triangle;
 }
 
-int triangle_encoder(int x, int y, int z, int index) {
+int triangle_encoder(int x, int y, int z, int index, int texture_id) {
     int encoded_triangle =
         (x & 0b1111) |
         ((y & 0b1111) << 4) |
         ((z & 0b1111) << 8) |
-        ((index & 0b1111) << 12);
+        ((index & 0b1111) << 12) |
+        ((texture_id & 0b11111111) << 16);
     return encoded_triangle;
 }
 
@@ -999,12 +1095,8 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
         int UV_index = 0;
         for (int i = 2; i < 4; i++) {
             std::vector<int> triangle = faces[i];
-            if (block_type == 0b1101) {
-                triangle[3] -= 15;
-            }
-
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0]%16, block[1]%16, block[2]%16, i);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -1020,7 +1112,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -1037,7 +1129,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -1052,7 +1144,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -1068,7 +1160,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -1083,7 +1175,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -1213,7 +1305,7 @@ void entiti_physics(Slime& slime, float delta_time, std::vector<std::vector<int>
     //vy = -5*delta_time;
     float ty = -2*delta_time;
     float txz = 0;
-    collisions(ex, ey, ez, txz, ty, txz, 0.5,0.5,0.5, blocks);
+    collisions(ex, ey, ez, txz, ty, txz, slime.size/2, slime.size / 2, slime.size / 2, blocks);
     if (vy > -10) {
         vy -= 1*delta_time;
     }
@@ -1228,7 +1320,7 @@ void entiti_physics(Slime& slime, float delta_time, std::vector<std::vector<int>
     float e_dy = delta_time * vy;
     float e_dz = delta_time * vz;
     //std::cout << e_dx << " " << e_dy << " " << e_dz << std::endl;
-    collisions(ex, ey, ez, e_dx, e_dy, e_dz,0.5,0.5,0.5, blocks);
+    collisions(ex, ey, ez, e_dx, e_dy, e_dz, slime.size / 2, slime.size / 2, slime.size / 2, blocks);
     //std::cout << e_dx << " " << e_dy << " " << e_dz << std::endl;
     ex += e_dx;
     ey += e_dy;
@@ -1245,7 +1337,7 @@ void interpolate(Point2_ref& v1, const Point2 v2, float z) {
     v1.v = v1.v + t * (v2.v - v1.v);
 }
 
-void update_pixel(int screen[characters_per_row*number_of_columns][4], const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const int& triangle_index, const float area_abc) {
+void update_pixel(int screen[characters_per_row*number_of_columns][5], const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const int& triangle_index, const float area_abc, int texture_id) {
     //std::cout << x << " " << y << " " << z << std::endl;
     //if (z != 0 && abs(1 * y) < number_of_columns / 2 && abs(1 * x) < characters_per_row / 2) {
         //std::cout << characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co<<"\n";
@@ -1259,11 +1351,12 @@ void update_pixel(int screen[characters_per_row*number_of_columns][4], const Poi
             screen[index][1] = static_cast<int>(z);
             screen[index][2] = static_cast<int>(1000 * std::get<0>(UV_co));
             screen[index][3] = static_cast<int>(1000 * std::get<1>(UV_co));
+            screen[index][4] = texture_id;
         }
     //}
 }
 
-void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Point2 b, Point2 c, int triangle_index) {
+void rasterize(int screen[characters_per_row*number_of_columns][5], Point2 a, Point2 b, Point2 c, int triangle_index, int texture_id) {
     //std::vector<std::vector<float>> rasterized;
     std::vector<float> x_co_for_lines_1;
     std::vector<float> x_co_for_lines_2;
@@ -1279,7 +1372,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
         }
         if (abs(a.y) < number_of_columns / 2) {
             for (float x = max(characters_per_row, min(a.x, min(b.x, c.x))); x < min(characters_per_row, max(a.x, max(b.x, max(-number_of_columns / 2, c.x)))); x++) {
-                update_pixel(screen, a, b, c, x, a.y, a.z, triangle_index, calculateTriangleArea_Point2_v(a, b, c));
+                update_pixel(screen, a, b, c, x, a.y, a.z, triangle_index, calculateTriangleArea_Point2_v(a, b, c), texture_id);
             }
         }
         return;
@@ -1353,7 +1446,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
                 //std::cout << "sort2" << std::endl;
 
                 for (int i = 1; i < points_for_triangulation.size() - 1; i++) {
-                    rasterize(screen, points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1], triangle_index);
+                    rasterize(screen, points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1], triangle_index, texture_id);
                     //for (std::vector<float> tri_rasteri : rasterize(points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1])) {
                     //    rasterized.push_back(tri_rasteri);
                     //}
@@ -1435,7 +1528,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
                             }
                             */
 
-                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index, area_abc);
+                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index, area_abc, texture_id);
 
                             //rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] + (x - x_co_for_lines_1[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i])});
                         }
@@ -1458,7 +1551,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][4], Point2 a, Po
                                 screen[index] = { 20 + 2 * (triangle_index / 2),static_cast<int>(z), static_cast<int>(1000 * std::get<0>(UV_co)), static_cast<int>(1000 * std::get<1>(UV_co)) };
                             }*/
                           //  std::cout << "end " << c.y << std::endl;
-                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index, area_abc);
+                            update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index, area_abc, texture_id);
                             //rasterized.push_back({ x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]) });
                         }
                     }
@@ -1485,7 +1578,7 @@ void add_perspective(float& p_x_co1, float& p_y_co1,float& p_z_co1) {
     p_z_co1 *= constant_x;
 }
 
-void update_screen(int screen[characters_per_row*number_of_columns][4], const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, std::vector<Slime> slimes, const float x_rotation, const float y_rotation, const float px, const float py, const float pz) {
+void update_screen(int screen[characters_per_row*number_of_columns][5], const std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>& map_triangles, std::vector<Slime> slimes, const float x_rotation, const float y_rotation, const float px, const float py, const float pz) {
    // screen.assign(characters_per_row * number_of_columns, { 0, 1024 * 1024 * 1024,-1,-1 });
     fill_screen(screen);
     int u = 0;
@@ -1635,8 +1728,8 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
                             p_x_co3 = constant_x * p_x_co3 / (p_z_co3 + constant);
                             p_y_co3 = constant_y * p_y_co3 / (p_z_co3 + constant);
                             p_z_co3 *= constant_x;
-
-                            rasterize(screen, { p_x_co1,p_y_co1 ,p_z_co1, p_u_co1,p_v_co1 }, { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 }, { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 }, (triangle2 >> 12) & 0b1111);
+                            //std::cout << ((triangle2 >> 16) & 0b11111111) << std::endl;
+                            rasterize(screen, { p_x_co1,p_y_co1 ,p_z_co1, p_u_co1,p_v_co1 }, { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 }, { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 }, (triangle2 >> 12) & 0b1111, (triangle2>>16)&0b11111111);
                         }
                     }
                 }
@@ -1650,9 +1743,9 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
         float slime_y = slime.y-py-0.5 * slime.size;
         float slime_z = slime.z-pz-0.5 * slime.size;
         for (int index : vertices) {
-            Point2 a = { slime_x + ((index >> 0) & 1), slime_y + ((index >> 1) & 1), slime_z + ((index >> 2) & 1) ,0,0 };
-            Point2 b = { slime_x + ((index >> 3) & 1), slime_y + ((index >> 4) & 1), slime_z + ((index >> 5) & 1) ,0,0 };
-            Point2 c = { slime_x + ((index >> 6) & 1), slime_y + ((index >> 7) & 1), slime_z + ((index >> 8) & 1) ,0,0 };
+            Point2 a = { slime_x + slime.size * ((index >> 0) & 1), slime_y + slime.size * ((index >> 1) & 1), slime_z + slime.size * ((index >> 2) & 1) ,0,0 };
+            Point2 b = { slime_x + slime.size * ((index >> 3) & 1), slime_y + slime.size * ((index >> 4) & 1), slime_z + slime.size * ((index >> 5) & 1) ,0,0 };
+            Point2 c = { slime_x + slime.size * ((index >> 6) & 1), slime_y + slime.size * ((index >> 7) & 1), slime_z + slime.size * ((index >> 8) & 1) ,0,0 };
             add_rotation(x_rotation, y_rotation - M_PI / 2, a.x, a.y, a.z);
             add_rotation(x_rotation, y_rotation - M_PI / 2, b.x, b.y, b.z);
             add_rotation(x_rotation, y_rotation - M_PI / 2, c.x, c.y, c.z);
@@ -1661,7 +1754,7 @@ void update_screen(int screen[characters_per_row*number_of_columns][4], const st
             add_perspective(b.x, b.y, b.z);
             add_perspective(c.x, c.y, c.z);
 
-            rasterize(screen, a, b, c, 1);
+            rasterize(screen, a, b, c, 1, 0);
         }
     }
 }
@@ -2072,7 +2165,7 @@ std::tuple<int, int, int> block_placing(std::unordered_map<std::tuple<int, int, 
             int cx = (16 + x % 16) % 16;
             int cy = (16 + y % 16) % 16;
             int cz = (16 + z % 16) % 16;
-            chunk[16 * cz + cy] |= (static_cast<uint64_t>(0b1111) << (4 * cx));
+            chunk[16 * cz + cy] |= (static_cast<uint64_t>(0b0001) << (4 * cx));
             return std::make_tuple(x, y, z);
         }
     }
@@ -2083,7 +2176,7 @@ std::tuple<int, int, int> block_placing(std::unordered_map<std::tuple<int, int, 
 
 int main() {
     //std::cout << "vey very pre" << std::endl;
-    int(*screen)[4] = new int[characters_per_row * number_of_columns][4];
+    int(*screen)[5] = new int[characters_per_row * number_of_columns][5];
     //std::cout << "vey pre" << std::endl;
     fill_screen(screen);
     double ex=px+10;
@@ -2146,8 +2239,10 @@ int main() {
     int render_distance = 4;
     double a = 1024 * 1024;
     std::vector<Slime> slimes;
-    Slime slime = { a,a + 10,a+10,0,0,0,1.0f };
-    slimes.push_back(slime);
+    for (int i = 0; i < 1; i++) {
+        Slime slime = { a,a + 10,a + 10,0,0,0,0.4,0 };
+        slimes.push_back(slime);
+    }
     //std::cout << "start" << std::endl;
     while (true) {
         //std::cout << "start" << std::endl;
