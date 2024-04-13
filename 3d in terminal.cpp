@@ -15,16 +15,9 @@
 #include <tuple>
 #include <mutex>
 #include <omp.h>
-#define FOREGROUND_BLUE      0x0001
-#define FOREGROUND_GREEN     0x0002
-#define FOREGROUND_RED       0x0004
-#define FOREGROUND_INTENSITY 0x0008
-#define BACKGROUND_BLUE      0x0010
-#define BACKGROUND_GREEN     0x0020
-#define BACKGROUND_RED       0x0040
-#define BACKGROUND_INTENSITY 0x0080
 #define FOREGROUND_WHITE     (FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
 #define BACKGROUND_BLACK     0
+#define FOREGROUND_BROWN     (FOREGROUND_RED | FOREGROUND_GREEN)
 void clear_screen() {
 #ifdef _WIN32
     system("cls");
@@ -267,75 +260,136 @@ std::vector<std::vector<std::vector<int>>> textures =
     //1 dirt
     {
         {
-            1, 3, 2, 2, 1, 3, 2, 1,
-            2, 2, 1, 3, 1, 2, 3, 1,
-            3, 1, 2, 2, 3, 1, 1, 2,
-            2, 3, 1, 1, 2, 3, 1, 2,
-            1, 2, 3, 2, 1, 1, 2, 3,
-            3, 1, 2, 3, 1, 2, 2, 1,
-            2, 2, 3, 1, 2, 1, 3, 1,
-            1, 3, 1, 2, 3, 2, 1, 3
+1, 3, 2, 1, 1, 3, 3, 2, 2, 3, 1, 3, 2, 2, 1, 3,
+2, 2, 3, 1, 1, 2, 2, 2, 3, 2, 3, 3, 2, 2, 1, 1,
+3, 1, 2, 2, 3, 2, 2, 1, 1, 2, 1, 2, 1, 2, 1, 1,
+1, 3, 1, 2, 3, 2, 3, 2, 2, 2, 3, 2, 3, 2, 3, 1,
+2, 3, 1, 3, 2, 3, 3, 2, 3, 1, 1, 1, 2, 3, 2, 3,
+3, 2, 1, 2, 3, 2, 2, 1, 1, 2, 3, 3, 1, 3, 2, 3,
+3, 3, 3, 2, 1, 3, 1, 2, 2, 1, 2, 2, 3, 1, 1, 3,
+2, 2, 2, 2, 1, 2, 1, 2, 3, 3, 2, 1, 2, 3, 1, 3,
+1, 2, 2, 1, 3, 3, 2, 1, 2, 1, 3, 3, 3, 1, 3, 3,
+3, 2, 2, 3, 3, 3, 1, 3, 2, 1, 2, 3, 2, 2, 1, 3,
+2, 3, 3, 3, 2, 1, 2, 3, 2, 1, 1, 1, 1, 1, 1, 2,
+1, 1, 3, 2, 2, 3, 2, 2, 3, 1, 2, 1, 2, 1, 2, 1,
+3, 3, 2, 2, 1, 3, 2, 1, 2, 1, 3, 2, 1, 2, 3, 2,
+3, 2, 3, 3, 3, 2, 3, 2, 3, 2, 2, 2, 2, 1, 2, 1,
+2, 2, 2, 1, 3, 2, 1, 3, 2, 3, 2, 3, 1, 1, 2, 1,
+1, 3, 3, 2, 1, 3, 3, 2, 3, 3, 2, 1, 3, 3, 1, 1,
+
+
         },
 
         {
-            1, 3, 2, 2, 1, 3, 2, 1,
-            2, 2, 1, 3, 1, 2, 3, 1,
-            3, 1, 2, 2, 3, 1, 1, 2,
-            2, 3, 1, 1, 2, 3, 1, 2,
-            1, 2, 3, 2, 1, 1, 2, 3,
-            3, 1, 2, 3, 1, 2, 2, 1,
-            2, 2, 3, 1, 2, 1, 3, 1,
-            1, 3, 1, 2, 3, 2, 1, 3
+2, 3, 3, 3, 2, 1, 1, 3, 3, 3, 3, 3, 3, 2, 1, 1,
+3, 3, 2, 3, 2, 2, 1, 2, 1, 1, 3, 3, 3, 3, 1, 3,
+2, 1, 2, 3, 1, 2, 1, 3, 2, 3, 2, 3, 3, 3, 2, 1,
+1, 3, 2, 1, 2, 3, 3, 3, 3, 1, 1, 3, 2, 3, 1, 2,
+1, 2, 1, 3, 3, 3, 3, 3, 3, 3, 2, 1, 1, 2, 2, 3,
+2, 3, 3, 3, 3, 2, 2, 3, 1, 3, 2, 3, 1, 2, 3, 3,
+2, 3, 1, 2, 1, 3, 1, 2, 1, 1, 3, 2, 2, 3, 3, 3,
+1, 2, 1, 1, 2, 3, 3, 2, 1, 3, 1, 1, 1, 1, 2, 1,
+2, 3, 3, 1, 2, 2, 3, 2, 1, 2, 1, 1, 2, 3, 3, 3,
+2, 3, 1, 2, 1, 3, 3, 3, 1, 1, 3, 1, 3, 3, 3, 3,
+1, 1, 3, 2, 1, 1, 3, 3, 2, 2, 2, 3, 2, 3, 3, 3,
+1, 1, 3, 2, 3, 3, 3, 1, 2, 3, 2, 3, 2, 3, 2, 2,
+2, 2, 1, 3, 2, 3, 2, 2, 1, 2, 1, 3, 2, 1, 2, 3,
+2, 3, 1, 1, 2, 2, 1, 2, 1, 3, 2, 1, 3, 3, 2, 1,
+1, 1, 3, 2, 3, 2, 2, 1, 2, 3, 3, 1, 2, 1, 1, 1,
+2, 3, 2, 3, 3, 1, 3, 1, 1, 3, 2, 3, 2, 2, 1, 1,
+
+
         },
 
         {
-            1, 3, 2, 2, 1, 3, 2, 1,
-            2, 2, 1, 3, 1, 2, 3, 1,
-            3, 1, 2, 2, 3, 1, 1, 2,
-            2, 3, 1, 1, 2, 3, 1, 2,
-            1, 2, 3, 2, 1, 1, 2, 3,
-            3, 1, 2, 3, 1, 2, 2, 1,
-            2, 2, 3, 1, 2, 1, 3, 1,
-            1, 3, 1, 2, 3, 2, 1, 3
+3, 2, 3, 2, 2, 1, 2, 2, 3, 3, 2, 3, 2, 1, 3, 2,
+1, 3, 3, 3, 2, 2, 1, 3, 2, 2, 1, 3, 1, 3, 2, 3,
+2, 1, 2, 3, 3, 2, 2, 2, 3, 1, 1, 3, 2, 3, 1, 2,
+2, 2, 2, 3, 2, 1, 3, 2, 3, 1, 2, 2, 3, 3, 1, 3,
+3, 1, 1, 3, 2, 2, 3, 1, 1, 2, 1, 2, 3, 3, 2, 2,
+1, 1, 1, 2, 2, 3, 1, 3, 1, 3, 1, 2, 1, 1, 3, 2,
+2, 3, 2, 2, 1, 1, 2, 3, 3, 3, 1, 3, 3, 3, 3, 3,
+3, 1, 2, 3, 3, 1, 3, 3, 2, 1, 3, 2, 3, 1, 1, 3,
+1, 2, 2, 1, 3, 3, 2, 3, 2, 1, 1, 2, 3, 3, 1, 3,
+2, 2, 2, 1, 2, 3, 2, 3, 1, 1, 1, 3, 3, 2, 3, 2,
+3, 3, 1, 2, 3, 2, 1, 3, 3, 3, 1, 3, 2, 1, 3, 1,
+3, 3, 1, 3, 3, 3, 3, 2, 1, 2, 2, 3, 2, 2, 3, 1,
+3, 2, 2, 2, 3, 1, 1, 1, 3, 1, 3, 3, 2, 1, 2, 1,
+1, 3, 1, 2, 3, 1, 2, 1, 1, 2, 1, 2, 2, 1, 2, 2,
+3, 2, 2, 2, 3, 3, 2, 3, 1, 1, 3, 2, 1, 3, 2, 2,
+1, 1, 3, 3, 2, 3, 1, 2, 3, 2, 2, 2, 3, 1, 3, 1,
+
         },
         {
-            1, 3, 2, 2, 1, 3, 2, 1,
-            2, 2, 1, 3, 1, 2, 3, 1,
-            3, 1, 2, 2, 3, 1, 1, 2,
-            2, 3, 1, 1, 2, 3, 1, 2,
-            1, 2, 3, 2, 1, 1, 2, 3,
-            3, 1, 2, 3, 1, 2, 2, 1,
-            2, 2, 3, 1, 2, 1, 3, 1,
-            1, 3, 1, 2, 3, 2, 1, 3
+3, 2, 2, 1, 1, 1, 3, 2, 1, 2, 2, 1, 3, 3, 1, 2,
+2, 1, 2, 1, 1, 3, 2, 2, 3, 2, 1, 1, 1, 2, 2, 2,
+1, 2, 2, 1, 1, 3, 2, 2, 3, 1, 2, 3, 2, 1, 1, 1,
+3, 2, 1, 2, 3, 2, 2, 2, 1, 1, 2, 2, 3, 2, 2, 3,
+2, 3, 3, 3, 2, 1, 1, 1, 1, 3, 1, 1, 1, 3, 1, 3,
+2, 3, 2, 1, 3, 3, 1, 3, 2, 1, 2, 1, 1, 3, 1, 2,
+1, 3, 1, 1, 2, 1, 3, 3, 2, 3, 1, 2, 2, 3, 1, 1,
+3, 3, 1, 2, 2, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 1,
+3, 2, 2, 3, 3, 3, 1, 3, 2, 3, 2, 2, 2, 1, 1, 2,
+2, 2, 3, 2, 1, 1, 2, 1, 2, 1, 3, 1, 2, 3, 3, 3,
+1, 3, 3, 3, 1, 3, 2, 3, 1, 2, 1, 2, 2, 3, 3, 2,
+1, 3, 3, 2, 2, 1, 1, 2, 3, 1, 2, 1, 2, 1, 2, 1,
+1, 2, 1, 2, 3, 3, 1, 3, 3, 3, 2, 1, 1, 3, 2, 2,
+3, 1, 2, 1, 3, 3, 3, 1, 2, 1, 1, 1, 1, 3, 2, 1,
+2, 3, 2, 1, 3, 1, 3, 1, 1, 3, 1, 3, 1, 1, 1, 2,
+1, 2, 1, 2, 2, 3, 1, 2, 3, 1, 1, 2, 1, 1, 1, 1,
+
         },
 
         {
-            1, 3, 2, 2, 1, 3, 2, 1,
-            2, 2, 1, 3, 1, 2, 3, 1,
-            3, 1, 2, 2, 3, 1, 1, 2,
-            2, 3, 1, 1, 2, 3, 1, 2,
-            1, 2, 3, 2, 1, 1, 2, 3,
-            3, 1, 2, 3, 1, 2, 2, 1,
-            2, 2, 3, 1, 2, 1, 3, 1,
-            1, 3, 1, 2, 3, 2, 1, 3
+2, 1, 1, 3, 1, 1, 1, 3, 2, 3, 3, 1, 3, 1, 3, 1,
+3, 2, 2, 2, 3, 3, 1, 2, 1, 3, 2, 3, 2, 3, 3, 1,
+1, 2, 3, 2, 3, 1, 2, 3, 1, 1, 3, 1, 1, 2, 1, 3,
+3, 2, 2, 3, 3, 3, 3, 1, 2, 2, 3, 3, 3, 2, 3, 1,
+2, 1, 2, 1, 2, 2, 3, 2, 2, 3, 2, 3, 3, 2, 3, 1,
+2, 1, 1, 2, 1, 1, 2, 1, 3, 1, 1, 3, 1, 1, 2, 2,
+3, 1, 2, 1, 2, 2, 2, 3, 3, 2, 2, 2, 3, 2, 2, 3,
+1, 1, 3, 3, 3, 1, 3, 2, 2, 1, 3, 1, 2, 3, 3, 1,
+3, 3, 3, 2, 3, 2, 1, 1, 2, 3, 1, 3, 1, 3, 1, 2,
+1, 2, 2, 2, 1, 2, 2, 1, 1, 3, 1, 1, 3, 1, 1, 3,
+2, 2, 1, 2, 1, 1, 2, 2, 1, 3, 1, 3, 2, 1, 3, 2,
+1, 3, 3, 2, 2, 2, 1, 2, 3, 3, 2, 1, 2, 1, 1, 2,
+3, 3, 3, 3, 3, 3, 2, 3, 1, 1, 2, 2, 1, 3, 3, 2,
+2, 2, 2, 3, 3, 2, 1, 3, 3, 3, 2, 3, 2, 1, 1, 1,
+2, 2, 2, 2, 1, 2, 3, 1, 2, 3, 2, 1, 2, 1, 2, 3,
+3, 2, 2, 2, 3, 1, 3, 3, 3, 1, 2, 3, 2, 2, 3, 2,
+
+
         },
 
         {
-            1, 3, 2, 2, 1, 3, 2, 1,
-            2, 2, 1, 3, 1, 2, 3, 1,
-            3, 1, 2, 2, 3, 1, 1, 2,
-            2, 3, 1, 1, 2, 3, 1, 2,
-            1, 2, 3, 2, 1, 1, 2, 3,
-            3, 1, 2, 3, 1, 2, 2, 1,
-            2, 2, 3, 1, 2, 1, 3, 1,
-            1, 3, 1, 2, 3, 2, 1, 3
+1, 3, 3, 3, 3, 2, 3, 2, 2, 2, 2, 1, 3, 3, 3, 3,
+1, 3, 2, 1, 3, 1, 1, 3, 2, 3, 1, 1, 2, 3, 3, 2,
+2, 2, 3, 3, 2, 2, 2, 2, 2, 1, 3, 1, 2, 3, 3, 3,
+2, 1, 1, 2, 2, 3, 1, 3, 1, 1, 1, 1, 1, 2, 1, 3,
+3, 2, 2, 1, 3, 2, 3, 2, 2, 2, 1, 1, 2, 1, 1, 2,
+1, 2, 2, 2, 1, 2, 3, 2, 3, 1, 1, 2, 2, 3, 3, 3,
+2, 3, 1, 3, 2, 3, 3, 2, 1, 2, 3, 1, 3, 1, 2, 1,
+2, 3, 1, 1, 2, 3, 2, 2, 1, 3, 3, 2, 2, 2, 2, 1,
+3, 1, 3, 1, 1, 3, 3, 2, 3, 2, 1, 3, 3, 3, 2, 3,
+2, 2, 3, 3, 1, 2, 2, 2, 1, 3, 1, 1, 1, 1, 1, 3,
+1, 3, 2, 1, 1, 3, 3, 2, 1, 1, 1, 2, 2, 1, 3, 3,
+3, 1, 3, 2, 2, 3, 1, 1, 3, 3, 1, 2, 2, 1, 1, 1,
+2, 2, 1, 2, 3, 2, 3, 1, 2, 3, 3, 3, 3, 1, 1, 1,
+1, 2, 1, 3, 1, 2, 3, 1, 3, 3, 1, 1, 2, 3, 3, 2,
+3, 1, 2, 2, 3, 3, 2, 3, 3, 2, 3, 2, 2, 1, 2, 3,
+2, 2, 1, 3, 2, 3, 2, 1, 3, 3, 1, 1, 2, 1, 1, 1,
+
         }
     }
 
 
 };
 
+std::vector<int> color = {
+    10,14
+};
 
+int texture_size = 16;
 float x_rotation = 0;
 float y_rotation = 0;
 float px = 1024*1024;
@@ -590,6 +644,7 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][5]) {
     for (int i = 0; i < bufferSize.X * bufferSize.Y; ++i) {
         buffer[i].Char.AsciiChar = L' ';  // Default character (space)
         buffer[i].Attributes = bufferInfo.wAttributes;  // Use current console attributes
+        //buffer[i].Attributes = FOREGROUND_BLUE;
     }
 
     // Populate the buffer with character data and attributes
@@ -601,9 +656,10 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][5]) {
 
         // Apply texture overlay if specified
         if (screen[i][2] != -1) {
-            int textureValue = textures[screen[i][4]/6][screen[i][4]%6][7*((screen[i][2]*7) / 1000) + (screen[i][3] * 7) / 1000];
+            int textureValue = textures[screen[i][4]/6][screen[i][4]%6][(texture_size-1)*((screen[i][2]* (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000];
             // some of the characters dont work
             buffer[i].Char.AsciiChar += static_cast<WCHAR>(characters[textureValue]);
+            //buffer[i].Attributes |= FOREGROUND_BLUE;
             //buffer[i].Char.UnicodeChar += static_cast<WCHAR>(characters[0]);
         }
         else {
@@ -611,8 +667,22 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][5]) {
         }
 
         // Set custom attributes based on your requirements (white text on black background)
-        WORD attributes = FOREGROUND_WHITE | BACKGROUND_BLACK;  // White text on black background
-
+        WORD attributes = 0;  // White text on black background
+        int foregroundColor = color[(screen[i][4]/6)];  // Foreground color value
+        
+        //foregroundColor = 14;
+        //int backgroundColor = screen[i][4];  // Background color value
+        /*if (foregroundColor >= 0 && foregroundColor < 16) {
+            buffer[i].Attributes &= 0xF0;  // Clear existing foreground color bits
+            attributes |= (foregroundColor & 0x0F);  // Set foreground color (low nibble)
+        }
+        if (backgroundColor >= 0 && backgroundColor < 16) {
+            buffer[i].Attributes &= 0xF0;  // Clear existing foreground color bits
+            attributes |= ((backgroundColor & 0x0F) << 4);  // Set background color (high nibble)
+        }*/
+        buffer[i].Attributes &= 0xFFF0;  // Clear existing foreground color bits
+        attributes |= (foregroundColor & 0x0F);  // Set foreground color (low nibble)
+        //buffer[i].Attributes |= ((backgroundColor & 0x0F) << 4);
         // Apply attributes to the current character in the buffer
         buffer[i].Attributes = attributes;
     }
@@ -622,6 +692,7 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][5]) {
 
     delete[] buffer;
 }
+
 double calculateTriangleArea_Point2_v(const Point2& A, const Point2& B, const Point2& C) {
     // Calculate the determinant of the matrix formed by the vertices
     double area = 0.5 * std::abs(A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
