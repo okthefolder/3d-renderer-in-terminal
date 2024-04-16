@@ -3063,7 +3063,7 @@ int get_block(int x, int y, int z, std::unordered_map<std::tuple<int, int, int>,
     }
 }
 
-std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, float x_rotation, float y_rotation, float px, float py, float pz) {
+std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, std::vector<Slime>& slimes, float x_rotation, float y_rotation, float px, float py, float pz) {
     float a;
     
     if (cos(x_rotation)>0) {
@@ -3077,37 +3077,50 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
     
     float magnitude = std::sqrt(a * a + c * c);
     a /= magnitude;
+    //b /= magnitude;
     c /= magnitude;
-    std::vector<std::tuple<int, int, int>> possible_blocks = { std::make_tuple(0,0,0) };
+    std::vector<std::tuple<float, float, float>> possible_blocks = { std::make_tuple(0,0,0) };
     float step_size = 0.001;
     for (int i = 0; i < 10000;i++) {
         float t = i * step_size;
         float x = px + t * a;
         float y = py + t * b;
         float z = pz + t * c;
-        if (!(std::get<0>(possible_blocks[possible_blocks.size()-1]) == floor(x) && std::get<1>(possible_blocks[possible_blocks.size() - 1]) == floor(y) && std::get<2>(possible_blocks[possible_blocks.size() - 1]) == floor(z))) {
+        //if (!(std::get<0>(possible_blocks[possible_blocks.size()-1]) == floor(x) && std::get<1>(possible_blocks[possible_blocks.size() - 1]) == floor(y) && std::get<2>(possible_blocks[possible_blocks.size() - 1]) == floor(z))) {
             possible_blocks.push_back(std::make_tuple(x, y, z));
-        }
+        //}
     }
     possible_blocks.erase(possible_blocks.begin());
-    for (auto ty : possible_blocks) {
-        int x;
-        int y;
-        int z;
+    for (auto& ty : possible_blocks) {
+        float x;
+        float y;
+        float z;
         std::tie(x, y, z) = ty;
+        for (const Slime& slime : slimes) {
+            float s = slime.size / 2;
+            //std::cout << abs(x - slime.x) << " " << abs(y - slime.y) << " " << abs(y - slime.y) << " " << std::endl;
+            if (abs(x - slime.x)<s &&
+                abs(y - slime.y) < s &&
+                abs(z - slime.z) < s){
+                std::cout << "SLIME" << std::endl;
+                //Sleep(5000);
+
+            }
+
+        }
         std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
         std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
-        int cx = (16 + x % 16) % 16;
-        int cy = (16 + y % 16) % 16;
-        int cz = (16 + z % 16) % 16;
+        int cx = (16 + static_cast<int>(x) % 16) % 16;
+        int cy = (16 + static_cast<int>(y) % 16) % 16;
+        int cz = (16 + static_cast<int>(z) % 16) % 16;
         if (get_block(x, y, z, map_chunks)!=0) {
             for (int i = 0; i < 10; i++) {
             }
             std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
             std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
-            int cx = (16 + x % 16) % 16;
-            int cy = (16 + y % 16) % 16;
-            int cz = (16 + z % 16) % 16;
+            //int cx = (16 + x % 16) % 16;
+            //int cy = (16 + y % 16) % 16;
+            //int cz = (16 + z % 16) % 16;
             chunk[16 * cz + cy] &= ~(static_cast<uint64_t>(0b1111) << (4 * cx));
             return std::make_tuple(x, y, z);
         }
@@ -3235,45 +3248,32 @@ int main() {
         Slime slime = { a,a + 10,a + 10,0,0,0,4,16*6 };
         slimes.push_back(slime);
     }
-    //std::cout << textures[16][0][34] << std::endl;
-    //Sleep(1000);
-    //std::cout << "start" << std::endl;
     while (true) {
-        //std::cout << "start" << std::endl;
-
         for (int x = -render_distance; x <= render_distance; x++) {
             for (int y = -render_distance; y <= render_distance; y++) {
                 for (int z = -render_distance; z <= render_distance; z++) {
-                    //std::cout << x << " " << y << " " << z << std::endl;
                     std::tuple<int, int, int> key = std::make_tuple(px / 16 + x, py / 16 + y, pz / 16 + z);
                     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>::iterator it = map_chunks.find(key);
                     if (it == map_chunks.end()) {
                         map_chunks[key] = make_chunk(px / 16 + x, py / 16 + y, pz / 16 + z);
                         std::vector<uint64_t> chunk = map_chunks[key];
                         if (x < render_distance || y < render_distance || z < render_distance) {
-                            //map_triangles[key] = chunk_to_triangles(map_chunks, px / 16 + x, py / 16 + y, pz / 16 + z);
                         }
                     }
                 }
             }
         }
-        //std::cout << "start" << std::endl;
-
         for (int x = 1 - render_distance; x <= render_distance - 1; x++) {
             for (int y = 1-render_distance; y <= render_distance-1; y++) {
                 for (int z = 1-render_distance; z <= render_distance-1; z++) {
-                    //std::cout << x << " " << y << " " << z << std::endl;
                     std::tuple<int, int, int> key = std::make_tuple(px / 16 + x, py / 16 + y, pz / 16 + z);
                     std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual>::iterator it = map_triangles.find(key);
                     if (it == map_triangles.end()) {
-                        //std::vector<uint64_t> chunk = map_chunks[key];
                         map_triangles[key] = chunk_to_triangles(map_chunks, px / 16 + x, py / 16 + y, pz / 16 + z);
                     }
                 }
             }
         }
-        //std::cout << "start" << std::endl;
-
         std::vector<std::tuple<int, int, int>> keysToRemove;
         for (auto& pair : map_chunks) {
             const std::tuple<int, int, int>& co = pair.first;
@@ -3293,7 +3293,7 @@ int main() {
 
         //BLOCK BREAKING
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-            std::tuple<int, int, int> key2 = block_breaking(map_chunks, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
+            std::tuple<int, int, int> key2 = block_breaking(map_chunks, slimes, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
             int x2, y2, z2;
             std::tie(x2, y2, z2) = key2;
             std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
@@ -3318,10 +3318,7 @@ int main() {
             std::vector<float> entiti_direction = calculate_enemy_direction(slimes[i], px, py, pz);
             slimes[i].dx = -entiti_direction[0];
             slimes[i].dz = -entiti_direction[1];
-            //std::cout << slimes[i].x-a << " " << slimes[i].y-a << " " << slimes[i].z-a << " " << std::endl;
-            //Sleep(100);
             entiti_physics(slimes[i], min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, slimes[i].x, slimes[i].y, slimes[i].z));
-            //slimes[0] = { ex,ey,ez,0,0,0,slimes[0].size };
         }
         controls(x_rotation, y_rotation, px, py, pz, min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
         update_screen(screen, map_triangles, slimes, x_rotation, y_rotation, px, py, pz);
