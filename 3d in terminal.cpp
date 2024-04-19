@@ -3561,7 +3561,7 @@ int get_block(int x, int y, int z, std::unordered_map<std::tuple<int, int, int>,
     }
 }
 
-std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, std::vector<Slime>& slimes, float x_rotation, float y_rotation, float px, float py, float pz) {
+std::vector<float> block_breaking(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, std::vector<Slime>& slimes, float x_rotation, float y_rotation, float px, float py, float pz, float block_breaking) {
     float a = cos(x_rotation);
     float b = tan(y_rotation);
     float c = sin(x_rotation);
@@ -3603,7 +3603,7 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
                 slime.z += c/5;
                 slime.size *=0.99;
                 slime.size -= 0.002;
-                return std::make_tuple(0,0,0);
+                return { 0,0,0,0 };
 
             }
 
@@ -3613,7 +3613,7 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
         int cx = (16 + static_cast<int>(x) % 16) % 16;
         int cy = (16 + static_cast<int>(y) % 16) % 16;
         int cz = (16 + static_cast<int>(z) % 16) % 16;
-        if (get_block(x, y, z, map_chunks)!=0) {
+        if (get_block(x, y, z, map_chunks)!=0 && block_breaking>=1) {
             for (int i = 0; i < 10; i++) {
             }
             std::tuple<int, int, int> key = std::make_tuple(x / 16, y / 16, z / 16);
@@ -3622,10 +3622,13 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
             //int cy = (16 + y % 16) % 16;
             //int cz = (16 + z % 16) % 16;
             chunk[16 * cz + cy] &= ~(static_cast<uint64_t>(0b1111) << (4 * cx));
-            return std::make_tuple(x, y, z);
+            return { x,y,z,block_breaking };
+        }
+        else if (get_block(x, y, z, map_chunks) != 0) {
+            return { x,y,z,block_breaking };
         }
     }
-    return std::make_tuple(0, 0, 0);
+    return { 0,0,0,0 };
 }
 
 std::tuple<int, int, int> block_placing(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, float x_rotation, float y_rotation, float px, float py, float pz) {
@@ -3741,8 +3744,10 @@ int main() {
     std::vector<std::vector<int>> UV_vertices = { {0,0},{1,0},{0,1},{1,1} };
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
-    int render_distance = 16;
+    int render_distance = 4;
     double a = 1024 * 1024;
+    float block_breaking_state = 0;
+    std::tuple<int, int, int> block_to_break = std::make_tuple(0, 0, 0);
     std::vector<Slime> slimes;
     for (int i = 0; i < 5; i++) {
         std::random_device rd;
@@ -3841,14 +3846,47 @@ int main() {
 
         //BLOCK BREAKING
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-            std::tuple<int, int, int> key2 = block_breaking(map_chunks, slimes, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
+            std::vector<float> break_info = block_breaking(map_chunks, slimes, M_PI / 2 - x_rotation, y_rotation, px, py, pz, block_breaking_state);
+            
+            std::tuple<int, int, int> key2 = std::make_tuple(break_info[0], break_info[1], break_info[2]);
             int x2, y2, z2;
             std::tie(x2, y2, z2) = key2;
-            std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
-            for (std::vector<int> block : blocks) {
-                auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
-                block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
+            if (block_breaking_state <= 0.01) {
+                block_to_break = key2;
             }
+            if (x2 != 0 && x2==std::get<0>(block_to_break) && y2 == std::get<1>(block_to_break) && z2 == std::get<2>(block_to_break)) {
+                block_breaking_state += delta_time;
+                //std::cout << block_breaking_state << std::endl;
+
+                //Sleep(200);
+                if (block_breaking_state > 1) {
+                    block_breaking_state = 0;
+                    int cx = (16 + static_cast<int>(x2) % 16) % 16;
+                    int cy = (16 + static_cast<int>(y2) % 16) % 16;
+                    int cz = (16 + static_cast<int>(z2) % 16) % 16;
+                    if (get_block(x2, y2, z2, map_chunks) != 0) {
+                        for (int i = 0; i < 10; i++) {
+                        }
+                        std::tuple<int, int, int> key = std::make_tuple(x2 / 16, y2 / 16, z2 / 16);
+                        std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+                        //int cx = (16 + x % 16) % 16;
+                        //int cy = (16 + y % 16) % 16;
+                        //int cz = (16 + z % 16) % 16;
+                        chunk[16 * cz + cy] &= ~(static_cast<uint64_t>(0b1111) << (4 * cx));
+                    }
+                    std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
+                    for (std::vector<int> block : blocks) {
+                        auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
+                        block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
+                    }
+                }
+            }
+            else {
+                block_breaking_state = 0;
+            }
+        }
+        else {
+            block_breaking_state = 0;
         }
 
         //BLOCK PLACING
