@@ -1514,34 +1514,70 @@ std::vector<std::vector<float>> perlin_noise_at_chunk(int cx, int cy, int cz, fl
     return perlin_noise;
 }
 
-std::vector<uint64_t> make_chunk(int cx, int cy, int cz) {
-    std::vector<std::vector<float>> perlin_noise = perlin_noise_at_chunk(cx, cy, cz, 0.9, 0.5);
+std::vector<uint64_t> make_chunk(int cx, int cy, int cz, std::vector<std::vector<int>>& blocks_to_add) {
+    std::vector<std::vector<float>> perlin_noise = perlin_noise_at_chunk(cx, cy, cz, 0.5, 0.5);
     std::vector<uint64_t> chunk(16*16,0);
     for (int x = 0; x < 16; x++) {
         for (int z=0; z < 16; z++) {
             int num1 = x;
-            //int num2 = 0;
-            int num2 = 1024 * 1024 -16*cy+(perlin_noise[x][z]+1) * 8;
-            //num2 = 10 * 16;
-            //if (perlin_noise[x][z] > 1 || perlin_noise[x][z] < -1) {
-            //    std::cout << "esogs" << std::endl;
-            //}
+            int num2 =1024*1024-16*cy + static_cast<int>((perlin_noise[x][z] + 1) * 16);
             int num3 = z;
             //std::cout << num2 << std::endl;
-            for (int i = 0; i < 1; i++) {
-                if (num2-i < 16 && num2-i >= 0) {
-                    chunk[16 * num3 + num2-i] |= (static_cast<uint64_t>(0b0001) << (4 * x));
+            for (int y = 0; y < 16; y++) {
+                if (y== num2) {
+                    //std::cout << y << std::endl;
+                    chunk[16 * num3 + y] |= (static_cast<uint64_t>(0b0001) << (4 * x));
+                    float f = num2;
+                    //std::cout << ((*reinterpret_cast<int*>(&f)&0xFF) ^ (x*x) ^ (z*z)) << std::endl;
+                    if (((std::hash<uint32_t>{}((357230987 << 16) ^ (x << 8) ^ (y << 4) ^ z))&(0xFF)) == 0) {
+                        for (int i = 1; i < 3; i++) {
+                            blocks_to_add.push_back({ x + cx * 16,y+i + cy * 16, z + cz * 16, 0b0011 });
+                        }
+                        for (int i = 3; i < 6; i++) {
+                            for (int x0 = -2; x0 < 3; x0++) {
+                                for (int z0 = -2; z0 < 3; z0++) {
+                                    blocks_to_add.push_back({ x+x0 + cx * 16,y + i + cy * 16, z+z0 + cz * 16, 0b0001 });
+                                }
+                            }
+                        }
+                        for (int i = 6; i < 7; i++) {
+                            for (int x0 = -1; x0 < 2; x0++) {
+                                for (int z0 = -1; z0 < 2; z0++) {
+                                    blocks_to_add.push_back({ x + x0 + cx * 16,y + i + cy * 16, z + z0 + cz * 16, 0b0001 });
+                                }
+                            }
+                        }
+                        for (int i = 3; i <= 5; i++) {
+                            blocks_to_add.push_back({ x + cx * 16,y + i + cy * 16, z + cz * 16, 0b0011 });
+                        }
+                    }
                 }
-            }
-            for (int i = 1; i < 4; i++) {
-                if (num2-i < 16 && num2-i >= 0) {
-                    chunk[16 * num3 + num2-i] |= (static_cast<uint64_t>(0b0010) << (4 * x));
+
+                if (num2-y <= 3 && num2-y > 0) {
+                    chunk[16 * num3 + y] |= (static_cast<uint64_t>(0b0010) << (4 * x));
                 }
-            }
-            for (int i = 4; i < 100; i++) {
-                if (num2 - i < 16 && num2 - i >= 0) {
-                    chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b0011) << (4 * x));
+
+                if (num2-y > 3) {
+                    chunk[16 * num3 + y] |= (static_cast<uint64_t>(0b0011) << (4 * x));
                 }
+
+
+
+                /*for (int i = 0; i < 1; i++) {
+                    if (num2 - i < 16 && num2 - i >= 0) {
+                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b0001) << (4 * x));
+                    }
+                }
+                for (int i = 1; i < 4; i++) {
+                    if (num2 - i < 16 && num2 - i >= 0) {
+                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b0010) << (4 * x));
+                    }
+                }
+                for (int i = 4; i < 100; i++) {
+                    if (num2 - i < 16 && num2 - i >= 0) {
+                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b0011) << (4 * x));
+                }       */
+                
             }
         }
     }
@@ -1636,7 +1672,7 @@ double calculateTriangleArea_Point2_v(const Point2& A, const Point2& B, const Po
     return area;
 }
 
-float distanceToPlane(Point3 point, float angleX, float angleY) {
+float distanceToPlane(Point2 point, float angleX, float angleY) {
     // Calculate camera's viewing direction vector
     float vx = cos(angleY) * sin(angleX);
     float vy = sin(angleY);
@@ -1655,7 +1691,7 @@ float distanceToPlane(Point3 point, float angleX, float angleY) {
     return distance;
 }
 
-bool isPointInFrontOfCamera(float angleX, float angleY, Point3 point) {
+bool isPointInFrontOfCamera(float angleX, float angleY, Point2 point) {
     // Calculate camera's viewing direction vector
     float vx = cos(angleY) * sin(angleX);
     float vy = sin(angleY);
@@ -2688,9 +2724,9 @@ void update_screen(int screen[characters_per_row*number_of_columns][5], const st
                     float p_v_co3 = (UV_data >> 5) & 0b1;
 
 
-                    Point3 point1 = { p_x_co1, p_y_co1, p_z_co1 };
-                    Point3 point2 = { p_x_co2, p_y_co2, p_z_co2 };
-                    Point3 point3 = { p_x_co3, p_y_co3, p_z_co3 };
+                    Point2 point1 = { p_x_co1,p_y_co1 ,p_z_co1, p_u_co1,p_v_co1 };
+                    Point2 point2 = { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 };
+                    Point2 point3 = { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 };
                     //std::cout << "böö" << std::endl;
                     if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) || isPointInFrontOfCamera(x_rotation, y_rotation, point2) || isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
@@ -2738,15 +2774,18 @@ void update_screen(int screen[characters_per_row*number_of_columns][5], const st
             Point2 a = { slime_x + slime.size * ((index >> 0) & 1), slime_y + slime.size * ((index >> 1) & 1), slime_z + slime.size * ((index >> 2) & 1) ,(UV_data >> 0) & 1,(UV_data >> 1) & 1 };
             Point2 b = { slime_x + slime.size * ((index >> 3) & 1), slime_y + slime.size * ((index >> 4) & 1), slime_z + slime.size * ((index >> 5) & 1) ,(UV_data >> 2) & 1,(UV_data >> 3) & 1 };
             Point2 c = { slime_x + slime.size * ((index >> 6) & 1), slime_y + slime.size * ((index >> 7) & 1), slime_z + slime.size * ((index >> 8) & 1) ,(UV_data >> 4) & 1,(UV_data >> 5) & 1 };
-            add_rotation(x_rotation, y_rotation - M_PI / 2, a.x, a.y, a.z);
-            add_rotation(x_rotation, y_rotation - M_PI / 2, b.x, b.y, b.z);
-            add_rotation(x_rotation, y_rotation - M_PI / 2, c.x, c.y, c.z);
+            if (isPointInFrontOfCamera(x_rotation, y_rotation, a) || isPointInFrontOfCamera(x_rotation, y_rotation, b) || isPointInFrontOfCamera(x_rotation, y_rotation, c)) {
 
-            add_perspective(a.x, a.y, a.z);
-            add_perspective(b.x, b.y, b.z);
-            add_perspective(c.x, c.y, c.z);
-            i++;
-            rasterize(screen, a, b, c, index, slime.texture_id);
+                add_rotation(x_rotation, y_rotation - M_PI / 2, a.x, a.y, a.z);
+                add_rotation(x_rotation, y_rotation - M_PI / 2, b.x, b.y, b.z);
+                add_rotation(x_rotation, y_rotation - M_PI / 2, c.x, c.y, c.z);
+
+                add_perspective(a.x, a.y, a.z);
+                add_perspective(b.x, b.y, b.z);
+                add_perspective(c.x, c.y, c.z);
+                i++;
+                rasterize(screen, a, b, c, index, slime.texture_id);
+            }
         }
     }
 }
@@ -3064,24 +3103,17 @@ int get_block(int x, int y, int z, std::unordered_map<std::tuple<int, int, int>,
 }
 
 std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, std::vector<Slime>& slimes, float x_rotation, float y_rotation, float px, float py, float pz) {
-    float a;
-    
-    if (cos(x_rotation)>0) {
-        a = 1;
-    }
-    else{
-        a = -1;
-    }
+    float a = cos(x_rotation);
     float b = tan(y_rotation);
-    float c = a*tan(x_rotation);
+    float c = sin(x_rotation);
     
-    float magnitude = std::sqrt(a * a + c * c);
+    float magnitude = std::sqrt(a * a +b*b+ c * c);
     a /= magnitude;
-    //b /= magnitude;
+    b /= magnitude;
     c /= magnitude;
     std::vector<std::tuple<float, float, float>> possible_blocks = { std::make_tuple(0,0,0) };
-    float step_size = 0.001;
-    for (int i = 0; i < 10000;i++) {
+    float step_size = 0.01;
+    for (int i = 0; i < 1000;i++) {
         float t = i * step_size;
         float x = px + t * a;
         float y = py + t * b;
@@ -3096,7 +3128,7 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
         float y;
         float z;
         std::tie(x, y, z) = ty;
-        for (const Slime& slime : slimes) {
+        for (Slime& slime : slimes) {
             float s = slime.size / 2;
             //std::cout << abs(x - slime.x) << " " << abs(y - slime.y) << " " << abs(y - slime.y) << " " << std::endl;
             if (abs(x - slime.x)<s &&
@@ -3104,6 +3136,15 @@ std::tuple<int,int,int> block_breaking(std::unordered_map<std::tuple<int, int, i
                 abs(z - slime.z) < s){
                 std::cout << "SLIME" << std::endl;
                 //Sleep(5000);
+                //std::cout << a << " " << b << " " << c << std::endl;
+                collisions(slime.x, slime.y, slime.z, a, b, c, s, s, s, blocks_from_neighboring_chunks(map_chunks, slime.x, slime.y, slime.z));
+                //std::cout << a << " "<< b <<" " << c << std::endl;
+                slime.x += a/5;
+                slime.y += b/5;
+                slime.z += c/5;
+                slime.size *=0.99;
+                slime.size -= 0.002;
+                return std::make_tuple(0,0,0);
 
             }
 
@@ -3244,23 +3285,70 @@ int main() {
     int render_distance = 4;
     double a = 1024 * 1024;
     std::vector<Slime> slimes;
-    for (int i = 0; i < 1; i++) {
-        Slime slime = { a,a + 10,a + 10,0,0,0,4,16*6 };
+    for (int i = 0; i < 5; i++) {
+        std::random_device rd;
+        std::default_random_engine engine(rd());
+
+        // Define distributions for the ranges
+        std::uniform_real_distribution<double> angleDistribution(0, 2 * M_PI);
+        std::uniform_real_distribution<double> rangeDistribution(15, 50);
+
+        // Generate two random numbers
+        double randomAngle = angleDistribution(engine);
+        double randomRange = rangeDistribution(engine);
+        Slime slime = { a + randomRange * sin(randomRange),a + 30,a + randomRange * cos(randomRange),0,0,0,2,16 * 6 };
         slimes.push_back(slime);
     }
+    std::vector<std::vector<int>> blocks_to_add;
     while (true) {
+        for (int i = 0; i < slimes.size(); i++) {
+            Slime& slime = slimes[i];
+            if (slime.size < 1) {
+                slimes.erase(slimes.begin() + i);
+                std::random_device rd;
+                std::default_random_engine engine(rd());
+
+                // Define distributions for the ranges
+                std::uniform_real_distribution<double> angleDistribution(0, 2*M_PI);
+                std::uniform_real_distribution<double> rangeDistribution(15, 50);
+
+                // Generate two random numbers
+                double randomAngle = angleDistribution(engine);
+                double randomRange = rangeDistribution(engine);
+                Slime slime = { px + randomRange * sin(randomRange),py + 10,pz + randomRange * cos(randomRange),0,0,0,2,16 * 6 };
+                slimes.push_back(slime);
+                break;
+            }
+        }
         for (int x = -render_distance; x <= render_distance; x++) {
             for (int y = -render_distance; y <= render_distance; y++) {
                 for (int z = -render_distance; z <= render_distance; z++) {
                     std::tuple<int, int, int> key = std::make_tuple(px / 16 + x, py / 16 + y, pz / 16 + z);
                     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>::iterator it = map_chunks.find(key);
                     if (it == map_chunks.end()) {
-                        map_chunks[key] = make_chunk(px / 16 + x, py / 16 + y, pz / 16 + z);
+                        map_chunks[key] = make_chunk(px / 16 + x, py / 16 + y, pz / 16 + z,blocks_to_add);
                         std::vector<uint64_t> chunk = map_chunks[key];
                         if (x < render_distance || y < render_distance || z < render_distance) {
                         }
                     }
                 }
+            }
+        }
+
+        for (int i = 0; i < blocks_to_add.size(); i++) {
+            std::vector<int> block_info = blocks_to_add[i];
+            int bx = block_info[0];
+            int by = block_info[1];
+            int bz = block_info[2];
+            int type = block_info[3];
+            auto it = map_chunks.find(std::make_tuple(bx / 16, by / 16, bz / 16));
+            //std::cout <<  "erhe" << std::endl;
+            if (it != map_chunks.end()) {
+                std::vector<uint64_t>& chunk = it->second;
+                chunk[16 * (bz % 16) + by % 16] &= ~(static_cast<uint64_t>(0b1111) << (4 * (bx % 16)));
+                chunk[16 * (bz % 16) + by % 16] |= (static_cast<uint64_t>(type) << (4 * (bx % 16)));
+                blocks_to_add.erase(blocks_to_add.begin() + i);
+                i--;
             }
         }
         for (int x = 1 - render_distance; x <= render_distance - 1; x++) {
@@ -3274,6 +3362,7 @@ int main() {
                 }
             }
         }
+
         std::vector<std::tuple<int, int, int>> keysToRemove;
         for (auto& pair : map_chunks) {
             const std::tuple<int, int, int>& co = pair.first;
@@ -3323,6 +3412,7 @@ int main() {
         controls(x_rotation, y_rotation, px, py, pz, min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
         update_screen(screen, map_triangles, slimes, x_rotation, y_rotation, px, py, pz);
         draw_screen(screen);
+        //px += 160;
         
     }
 
