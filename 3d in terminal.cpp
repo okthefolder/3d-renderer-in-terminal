@@ -154,8 +154,8 @@ int unique_blocks = 1;
 // for 2 (940, 238)
 // for 3 (626,160)
 //keep the numbers even
-const int characters_per_row = 1880;
-const int number_of_columns = 480;
+const int characters_per_row = 940;
+const int number_of_columns = 240;
 const float FOV = 2*M_PI / 3;  // Field of view in degrees
 const float ASPECT_RATIO = static_cast<float>(characters_per_row) / static_cast<float>(number_of_columns);  // Width divided by height
 float dy = 0;
@@ -1775,9 +1775,9 @@ std::vector<std::vector<std::vector<int>>> colors =
 int texture_size = 16;
 float x_rotation = 0;
 float y_rotation = 0;
-float px = 1024*1024;
-float py = 1024*1024+16;
-float pz = 1024*1024;
+double px = 1024*1024;
+double py = 1024*1024+16;
+double pz = 1024*1024;
 
 std::vector<std::vector<int>> faces = {
     // Front face
@@ -1884,16 +1884,13 @@ std::vector<std::vector<float>> perlin_noise_generation(float fx, float fy) {
     for (int x = 0; x < 16; ++x) {
         for (int y = 0; y < 16; y++) {
             random_vectors[x][y] = getDeerministicRandomVector(x, y);
-            std::cout << random_vectors[x][y][0] << " " << random_vectors[x][y][1] << "   " << std::endl;
+            //std::cout << random_vectors[x][y][0] << " " << random_vectors[x][y][1] << "   " << std::endl;
         }
-        std::cout << " " << std::endl;
     }
-    std::cout << " " << std::endl;
-    std::cout << " " << std::endl;
-    std::cout << " " << std::endl;
 
     for (int x = 0; x < 15; ++x) {
         for (int y = 0; y < 15; y++) {
+
             non_interpoluated_perlin_noise[x][y] += dot_product(random_vectors[x][y], { fx,fy });
         }
     }
@@ -2050,48 +2047,59 @@ void add_rotation(float x_rotation, float y_rotation, float& x_co, float& y_co, 
 }
 
 void draw_screen(const int screen[characters_per_row * number_of_columns][5]) {
-    std::cout << "oguergo" << std::endl;
+    //std::cout << "oguergo" << std::endl;
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    
+    if (hConsole == INVALID_HANDLE_VALUE) {
+        // Error handling: Failed to get console handle
+        std::cerr << "Error: Failed to retrieve console handle" << std::endl;
+        return;
+    }
 
     // Get console screen buffer info
     CONSOLE_SCREEN_BUFFER_INFO bufferInfo;
     GetConsoleScreenBufferInfo(hConsole, &bufferInfo);
 
+    if (!GetConsoleScreenBufferInfo(hConsole, &bufferInfo)) {
+        // Error handling: failed to get console screen buffer info
+        std::cerr << "Error: Unable to retrieve console screen buffer info" << std::endl;
+        Sleep(1000);
+        return;
+    }
+
     COORD bufferSize = { static_cast<SHORT>(characters_per_row), static_cast<SHORT>(number_of_columns) };
+    //std::cout << bufferSize.X << " " << bufferSize.Y << std::endl;
+    //Sleep(1000);
+    //COORD bufferSize = { static_cast<SHORT>(100), static_cast<SHORT>(500) };
+
     COORD bufferCoord = { 0, 0 };
     SMALL_RECT writeRegion = { 0, 0, bufferSize.X - 1, bufferSize.Y - 1 };
 
     CHAR_INFO* buffer = new CHAR_INFO[bufferSize.X * bufferSize.Y];
-
-    // Initialize buffer with default attributes
-    for (int i = 0; i < bufferSize.X * bufferSize.Y; ++i) {
-        //buffer[i].Char.AsciiChar = L' ';  // Default character (space)
-        buffer[i].Attributes = bufferInfo.wAttributes;  // Use current console attributes
-        //WORD attributes = 9;
-        //buffer[i].Attributes = attributes;
-        //buffer[i].Attributes = FOREGROUND_BLUE;
+    if (buffer == nullptr) {
+        // Error handling: Memory allocation failed
+        std::cerr << "Error: Failed to allocate memory for buffer" << std::endl;
+        return;  // or handle the error appropriately
     }
-
+    // Initialize buffer with default attributes
+    SetConsoleActiveScreenBuffer(hConsole);
+    for (int i = 0; i < characters_per_row * number_of_columns; ++i) {
+        buffer[i].Char.UnicodeChar = static_cast<WCHAR>('t'); // Default character (space)
+        buffer[i].Attributes = bufferInfo.wAttributes;  // Default console attributes
+    }
+    //std::cout << "hhh" << std::endl;
     // Populate the buffer with character data and attributes
-    for (int i = 0; i < bufferSize.X * bufferSize.Y; ++i) {
+    for (int i = 0; i < (characters_per_row-1) * (number_of_columns-1); ++i) {
+        //std::cout << i << std::endl;
         int value = screen[i][0];
-        if (screen[i][4] / 6 == 16) {
-            int textureValue = textures[screen[i][4] / 6][screen[i][4] % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000];
             
-            //std::cout << textureValue << std::endl;
-            //Sleep(100);
-        }
-        // Calculate character based on screen data
-        //buffer[i].Char.UnicodeChar = (value != 0) ? static_cast<WCHAR>(value) : L' ';
-
-        // Apply texture overlay if specified
         if (screen[i][2] != -1) {
             int textureValue = characters.size() - 1 - textures[screen[i][4]/6][screen[i][4]%6][(texture_size)*((screen[i][2]* (texture_size-1)) / 1000) + (screen[i][3] * (texture_size-1)) / 1000];
             //if (!(textureValue >= 0 && textureValue < 4)) {
                 //std::cout << textureValue<<" "<< static_cast<WCHAR>(characters[textureValue]) <<" "<< colors[(screen[i][4] / 6)][screen[i][4] % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000] << std::endl;
             //}
             // some of the characters dont work
-                buffer[i].Char.AsciiChar += static_cast<WCHAR>(characters[textureValue]);
+                buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[textureValue]);
                 //buffer[i].Attributes |= FOREGROUND_BLUE;
                 //buffer[i].Char.UnicodeChar += static_cast<WCHAR>(characters[0]);
             //}
@@ -2099,22 +2107,31 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][5]) {
         else {
             int textureValue = textures[screen[i][4] / 6][screen[i][4] % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000];
 
-            buffer[i].Char.AsciiChar += static_cast<WCHAR>(characters[textureValue]);
+            buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[textureValue]);
             //buffer[i].Char.AsciiChar += L' ';;
         }
-
+        //std::cout << screen[i][2]<<" "<<screen[i][3] << std::endl;
+        //std::cout << i << std::endl;
         // Set custom attributes based on your requirements (white text on black background)
         WORD attributes = 0;  // White text on black background
+        //std::cout << "start" << std::endl;
         int foregroundColor;
         if (screen[i][2] != -1) {
-            foregroundColor = colors[(screen[i][4] / 6)][screen[i][4] % 6][(texture_size) * ((screen[i][2] * (texture_size-1)) / 1000) + (screen[i][3] * (texture_size-1)) / 1000];
+            //std::cout << "hmmm "<< (screen[i][4] / 6)<<" " << screen[i][4] % 6 <<" "<< ((texture_size - 2) * (screen[i][2] * (texture_size)) / 1000) + (screen[i][3] * (texture_size-1)) / 1000 <<" size "<<colors[1][0].size() << std::endl;
+            foregroundColor = colors[(screen[i][4] / 6)][screen[i][4] % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000];
         }
         else {
+            //std::cout << "bruh" << std::endl;
             foregroundColor = 9*16+1;
         }
+        //std::cout << "atributes to 0"<<std::endl;
         buffer[i].Attributes = 0;  // Clear existing foreground color bits
+        //std::cout << "color" << std::endl;
         attributes |= (foregroundColor & 0b11111111);  // Set foreground color (low nibble)
+        //std::cout << "atributes2" << std::endl;
         buffer[i].Attributes = attributes;
+        //std::cout << buffer[i].Char.AsciiChar << std::endl;
+        //std::cout << i << std::endl;
     }
 
     // Write the buffer to the console screen buffer
@@ -2210,7 +2227,7 @@ std::vector<Point2> intersection(Point2 p1, Point2 p2) {
     float l2_z = 0;
     float l2_u = 0;
     float l2_v = 0;
-    if (p1.y != p2.y) {
+    if (abs(p1.y-p2.y)>0.5) {
         float t1 = (-(number_of_columns - 1) / 2 - p1.y) / (p2.y - p1.y);
         float z_1 = p1.z + t1 * (p2.z - p1.z);
 
@@ -2246,7 +2263,7 @@ std::vector<Point2> intersection(Point2 p1, Point2 p2) {
     float l4_z = 0;
     float l4_u = 0;
     float l4_v = 0;
-    if (p1.x != p2.x) {
+    if (abs(p1.x - p2.x) > 0.5) {
 
         float t3 = (-(characters_per_row - 1) / 2 - p1.x) / (p2.x - p1.x);
         float z_3 = p1.z + t3 * (p2.z - p1.z);
@@ -2309,10 +2326,10 @@ bool compareX(const Point2& p1, const Point2& p2) {
 }
 
 bool compareAngles(const Point2& p1, const Point2& p2, const Point2& centroid) {
-    //std::cout << "rgrogsrg" << std::endl;
+    //std::cout << p1.y - centroid.y << " " << p1.x - centroid.x << " " << p2.y - centroid.y << " " << p2.x - centroid.x << std::endl;
     float angle1 = atan2(p1.y - centroid.y, p1.x - centroid.x);
     float angle2 = atan2(p2.y - centroid.y, p2.x - centroid.x);
-   // std::cout << angle1 << " " << angle2 << std::endl;
+    //std::cout << angle1 << " " << angle2 << std::endl;
     return angle1 < angle2;
 
 }
@@ -2579,13 +2596,14 @@ std::vector<int> triangle_decoder(int encoded_triangle) {
     return triangle;
 }
 
-int triangle_encoder(int x, int y, int z, int index, int texture_id) {
+int triangle_encoder(int x, int y, int z, int index, int texture_id, int breaking_state) {
     int encoded_triangle =
         (x & 0b1111) |
         ((y & 0b1111) << 4) |
         ((z & 0b1111) << 8) |
         ((index & 0b1111) << 12) |
-        ((texture_id & 0b11111111) << 16);
+        ((texture_id & 0b11111111) << 16) |
+        ((breaking_state & 0b111) << 24);
     return encoded_triangle;
 }
 
@@ -2597,7 +2615,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
         for (int i = 2; i < 4; i++) {
             std::vector<int> triangle = faces[i];
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2,0);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -2613,7 +2631,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2,0);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -2630,7 +2648,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2,0);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -2645,7 +2663,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2,0);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -2661,7 +2679,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2,0);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -2676,7 +2694,7 @@ void block_to_triangles(std::unordered_map<std::tuple<int, int>, int, TupleHash2
                 triangle[3] -= 15;
             }
             if (block_type != 0) {
-                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2);
+                triangles[std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i)] = triangle_encoder(block[0] % 16, block[1] % 16, block[2] % 16, i, block_type * 6 + i / 2,0);
             }
             else {
                 triangles.erase(std::make_tuple(((block[0] % 16)) | ((block[1] % 16) << 8) | ((block[2] % 16) << 16), i));
@@ -2842,7 +2860,7 @@ void update_pixel(int screen[characters_per_row*number_of_columns][5], const Poi
     //std::cout << x << " " << y << " " << z << std::endl;
     //if (z != 0 && abs(1 * y) < number_of_columns / 2 && abs(1 * x) < characters_per_row / 2) {
         //std::cout << characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co<<"\n";
-        if (z > 0 && z < screen[characters_per_row * (number_of_columns/2+static_cast<int>(y)) + (characters_per_row / 2 + static_cast<int>(x))][1]) {
+        if (z > 0 && z < screen[max(0,min((characters_per_row)*number_of_columns,characters_per_row * (number_of_columns/2+static_cast<int>(y)) + (characters_per_row / 2 + static_cast<int>(x))))][1]) {
             //std::vector<float> UV_co = { 0,0 };
             std::tuple<float, float> UV_co = to_UV({ a.x,a.y,a.z, a.u, a.v }, { b.x,b.y,b.z, b.u, b.v }, { c.x,c.y,c.z, c.u, c.v }, x, y, z, area_abc);
             //std::tuple<float, float> UV_co = std::make_tuple(0,0);
@@ -2879,7 +2897,7 @@ void rasterize(int screen[characters_per_row*number_of_columns][5], Point2 a, Po
         return;
     }
     //std::cout <<"start " << c.y << " " << number_of_columns / 2 << " " << max(abs(a.y), max(abs(b.y), abs(c.y))) << std::endl;
-    if (max(abs(a.x), max(abs(b.x), abs(c.x))) > characters_per_row / 2 || (max(abs(a.y), max(abs(b.y), abs(c.y))) > number_of_columns / 2)) {
+    if (max(abs(a.x), max(abs(b.x), abs(c.x))) > characters_per_row / 2 || (max(abs(a.y), max(abs(b.y), abs(c.y))) >number_of_columns / 2)) {
         
         //std::cout << "rge" << std::endl;
         std::vector<Point2> a_b_intersection = intersection(a, b);
@@ -2930,43 +2948,46 @@ void rasterize(int screen[characters_per_row*number_of_columns][5], Point2 a, Po
             }
             Point2 centroid = { centroidx / (points_for_triangulation.size()),centroidy / (points_for_triangulation.size()) ,1 };
             //std::cout << "sort1" << std::endl;
-            bool halt_test=false;
-            for (int i = 0; i < points_for_triangulation.size();i++) {
-                for (int j = 0; j < points_for_triangulation.size(); j++) {
-                    if (i != j) {
-                        if (points_for_triangulation[i].y == points_for_triangulation[j].y && points_for_triangulation[i].x == points_for_triangulation[j].x) {
-                            halt_test = true;
-                        }
+                //std::cout << "sort1" << std::endl;
+            std::vector<Point2> sorted_points = {};
+            while (points_for_triangulation.size() > 0) {
+                float min_angle = 999999;
+                int index = 0;
+                for (int i = 0; i < points_for_triangulation.size(); i++) {
+                    Point2 p1 = points_for_triangulation[i];
+                    float angle = atan2(p1.y - centroid.y, p1.x - centroid.x);
+                    if (angle<min_angle) {
+                        index = i;
+                        min_angle = angle;
                     }
                 }
-            }
-            if (halt_test==false) {
-                std::sort(points_for_triangulation.begin(), points_for_triangulation.end(), [&](const Point2& p1, const Point2& p2) {
+                sorted_points.push_back(points_for_triangulation[index]);
+                points_for_triangulation.erase(points_for_triangulation.begin() + index);
+                
+                /*std::stable_sort(points_for_triangulation.begin(), points_for_triangulation.end(), [&](const Point2& p1, const Point2& p2) {
                     return compareAngles(p1, p2, centroid);
-                    });
+                    });*/
                 //std::cout << "sort2" << std::endl;
-
-                for (int i = 1; i < points_for_triangulation.size() - 1; i++) {
-                    rasterize(screen, points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1], triangle_index, texture_id);
-                    //for (std::vector<float> tri_rasteri : rasterize(points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1])) {
-                    //    rasterized.push_back(tri_rasteri);
-                    //}
+                for (Point2& p : sorted_points) {
+                    p.x = max(-characters_per_row / 2, min(characters_per_row/2, p.x));
+                    p.y = max(-number_of_columns / 2, min(number_of_columns / 2, p.y));
+                }
+                if (sorted_points.size() > 2) {
+                    for (int i = 1; i < sorted_points.size() - 1; i++) {
+                        rasterize(screen, sorted_points[0], sorted_points[i], sorted_points[i + 1], triangle_index, texture_id);
+                        //for (std::vector<float> tri_rasteri : rasterize(points_for_triangulation[0], points_for_triangulation[i], points_for_triangulation[i + 1])) {
+                        //    rasterized.push_back(tri_rasteri);
+                        //}
+                    }
                 }
             }
             
         }
-        else {
-        }
-        //return rasterized;
     }
     else {
-        //std::cout << "rrrgrtg" << std::endl;
-
         const float area_abc = calculateTriangleArea_Point2_v(a, b, c);
         if (abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) <= 2) {
-            //return { { a.x,a.y,a.z } };
         }
-        //rasterized.reserve(0.5 * abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)));
         for (float i = c.y; i >= b.y; i--) {
 
             if (abs(b.y - c.y) > 1) {
@@ -3186,6 +3207,8 @@ void update_screen(int screen[characters_per_row*number_of_columns][5], const st
                     Point2 point3 = { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 };
                     //std::cout << "böö" << std::endl;
                     if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) || isPointInFrontOfCamera(x_rotation, y_rotation, point2) || isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
+                        //std::cout << "rotation" << '\n';
+
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co2, p_y_co2, p_z_co2);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co3, p_y_co3, p_z_co3);
@@ -3194,6 +3217,8 @@ void update_screen(int screen[characters_per_row*number_of_columns][5], const st
                         float constant = 2;
                         //project on screen
                         if (abs(p_z_co1 + constant) > 0.1 && abs(p_z_co2 + constant) > 0.1 && abs(p_z_co3 + constant) > 0.1) {
+                            //std::cout << "division" << '\n';
+
                             p_x_co1 = constant_x * p_x_co1 / (p_z_co1 + constant);
                             p_y_co1 = constant_y * p_y_co1 / (p_z_co1 + constant);
                             p_z_co1 *= constant_x;
@@ -3206,7 +3231,11 @@ void update_screen(int screen[characters_per_row*number_of_columns][5], const st
                             p_y_co3 = constant_y * p_y_co3 / (p_z_co3 + constant);
                             p_z_co3 *= constant_x;
                             //std::cout << ((triangle2 >> 16) & 0b11111111) << std::endl;
+                            //std::cout << "rasterize" << '\n';
+
                             rasterize(screen, { p_x_co1,p_y_co1 ,p_z_co1, p_u_co1,p_v_co1 }, { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 }, { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 }, (triangle2 >> 12) & 0b1111, (triangle2>>16)&0b11111111);
+                            //std::cout << "rasterized" << '\n';
+
                         }
                     }
                 }
@@ -3249,7 +3278,7 @@ void update_screen(int screen[characters_per_row*number_of_columns][5], const st
 
 
 
-void controls(float& x_rotation, float& y_rotaion, float& px, float& py, float& pz, float delta_time, std::vector<std::vector<int>> blocks) {
+void controls(float& x_rotation, float& y_rotaion, double& px, double& py, double& pz, float delta_time, std::vector<std::vector<int>> blocks) {
     float n_px = 0;
     float n_py = 0;
     float n_pz = 0;
@@ -3687,12 +3716,6 @@ int main() {
     int(*screen)[5] = new int[characters_per_row * number_of_columns][5];
     //std::cout << "vey pre" << std::endl;
     fill_screen(screen);
-    double ex=px+10;
-    double ey=py;
-    double ez=pz+10;
-    float vx=0;
-    float vy=0;
-    float vz=0;
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_FONT_INFOEX fontInfo;
     fontInfo.cbSize = sizeof(fontInfo);
@@ -3835,6 +3858,7 @@ int main() {
             }
         }
         for (const auto& key : keysToRemove) {
+            if (map_chunks.find(key)!=map_chunks.end() && map_triangles.find(key) != map_triangles.end())
             map_chunks.erase(key);
             map_triangles.erase(key);
         }
@@ -3842,7 +3866,7 @@ int main() {
         std::chrono::duration<float> delta_seconds = current_time - last_time;
         last_time = current_time;
         float delta_time = delta_seconds.count();
-        std::cout << delta_time << '\n';
+        std::cout <<"fps "<< static_cast<int>(1/delta_time) << '\n';
 
         //BLOCK BREAKING
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
@@ -3880,6 +3904,14 @@ int main() {
                         block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
                     }
                 }
+                else {
+                    std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>& chunk_triangles = map_triangles[std::make_tuple(x2 / 16, y2 / 16,z2 / 16)];
+                    for (int i = 0; i < 12; i++) {
+                        int& encoded_triangle = chunk_triangles[std::make_tuple(((x2 % 16)) | ((y2 % 16) << 8) | ((z2 % 16) << 16), i)];
+                        encoded_triangle &= ~(0b111 << 24);
+                        encoded_triangle |= (static_cast<int>(8 * block_breaking_state) << 24);
+                    }
+                }
             }
             else {
                 block_breaking_state = 0;
@@ -3906,8 +3938,11 @@ int main() {
             slimes[i].dz = -entiti_direction[1];
             entiti_physics(slimes[i], min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, slimes[i].x, slimes[i].y, slimes[i].z));
         }
-        controls(x_rotation, y_rotation, px, py, pz, min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
+        //std::cout << "controls" << std::endl;
+        controls(x_rotation, y_rotation, px, py, pz, min(0.05, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
+        //std::cout << "update screen" << std::endl;
         update_screen(screen, map_triangles, slimes, x_rotation, y_rotation, px, py, pz);
+        //std::cout << "draw" << std::endl;
         draw_screen(screen);
         //px += 160;
         
