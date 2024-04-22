@@ -141,6 +141,7 @@ struct Slime {
     double dy;
     double dz;
     double size;
+    int hp;
     int texture_id;
 };
 
@@ -2089,10 +2090,8 @@ std::vector<std::vector<float>> perlin_noise_at_chunk(int cx, int cy, int cz, fl
         }
     }
 
-    // Initialize non-interpolated perlin noise
     std::vector<std::vector<float>> non_interpolated_perlin_noise(2, std::vector<float>(2, 0));
 
-    // Calculate perlin noise
     for (int x = 0; x < 2; ++x) {
         for (int z = 0; z < 2; ++z) {
             non_interpolated_perlin_noise[x][z] += dot_product(random_vectors[x][z], { fx, fz });
@@ -2103,7 +2102,6 @@ std::vector<std::vector<float>> perlin_noise_at_chunk(int cx, int cy, int cz, fl
         }
     }
 
-    // Interpolate perlin noise for each point
     std::vector<std::vector<float>> perlin_noise(16, std::vector<float>(16, 0));
     for (int x = 0; x < 16; ++x) {
         for (int z = 0; z < 16; ++z) {
@@ -2121,13 +2119,10 @@ std::vector<uint64_t> make_chunk(int cx, int cy, int cz, std::vector<std::vector
             int num1 = x;
             int num2 = 1024 * 1024 - 16 * cy + static_cast<int>((perlin_noise[x][z] + 1) * 16);
             int num3 = z;
-            //std::cout << num2 << std::endl;
             for (int y = 0; y < 16; y++) {
                 if (y == num2) {
-                    //std::cout << y << std::endl;
                     chunk[16 * num3 + y] |= (static_cast<uint64_t>(0b0001) << (4 * x));
                     float f = num2;
-                    //std::cout << ((*reinterpret_cast<int*>(&f)&0xFF) ^ (x*x) ^ (z*z)) << std::endl;
                     if (((std::hash<uint32_t>{}((357230987 << 16) ^ (x << 8) ^ (y << 4) ^ z))& (0xFF)) == 0) {
                         for (int i = 1; i < 3; i++) {
                             blocks_to_add.push_back({ x + cx * 16,y + i + cy * 16, z + cz * 16, 0b0100 });
@@ -2159,24 +2154,6 @@ std::vector<uint64_t> make_chunk(int cx, int cy, int cz, std::vector<std::vector
                 if (num2 - y > 3) {
                     chunk[16 * num3 + y] |= (static_cast<uint64_t>(0b0011) << (4 * x));
                 }
-
-
-
-                /*for (int i = 0; i < 1; i++) {
-                    if (num2 - i < 16 && num2 - i >= 0) {
-                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b0001) << (4 * x));
-                    }
-                }
-                for (int i = 1; i < 4; i++) {
-                    if (num2 - i < 16 && num2 - i >= 0) {
-                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b0010) << (4 * x));
-                    }
-                }
-                for (int i = 4; i < 100; i++) {
-                    if (num2 - i < 16 && num2 - i >= 0) {
-                        chunk[16 * num3 + num2 - i] |= (static_cast<uint64_t>(0b0011) << (4 * x));
-                }       */
-
             }
         }
     }
@@ -2251,7 +2228,9 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][5]) {
                 //std::cout << textureValue<<" "<< static_cast<WCHAR>(characters[textureValue]) <<" "<< colors[(screen[i][4] / 6)][screen[i][4] % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000] << std::endl;
             //}
             // some of the characters dont work
-            buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[textureValue]);
+            if (textureValue >= 0 && textureValue < characters.size()) {
+                buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[textureValue]);
+            }
             //buffer[i].Attributes |= FOREGROUND_BLUE;
             //buffer[i].Char.UnicodeChar += static_cast<WCHAR>(characters[0]);
         //}
@@ -3461,7 +3440,7 @@ void controls(float& x_rotation, float& y_rotaion, double& px, double& py, doubl
 
 
     if (dy > -10) {
-        //dy -= 5 * delta_time;
+        dy -= 5 * delta_time;
     }
     if (dy < 0) {
         ty = min(-1, dy) * delta_time;
@@ -3469,27 +3448,19 @@ void controls(float& x_rotation, float& y_rotaion, double& px, double& py, doubl
     else {
         ty = max(1, dy) * delta_time;
     }
+    //ty = -0.00001;
     collisions(px, py, pz, txz, ty, txz, 0.3, 1.5, 0.3, blocks);
-    if (ty == 0) {
-        //std::cout << "collision" << std::endl;
+    /*if (ty == 0) {
+        std::cout << "collision" << std::endl;
         //n_py = 0.1;
         dy = 0;
-    }
-    else {
-        //std::cout << "no no no no no" << std::endl;
-    }
-    // ty = 0;
-    // std::cout << "ty" << ty << std::endl;
-    // ty = 0;
-    ty = 0;
+    }*/
     if (GetAsyncKeyState(VK_SPACE) & 0x8000 && ty == 0) {
-        //std::cout << "JUMP" << std::endl;
-        //dy = 3;
-        n_py += 5 * delta_time;
+        dy = 3;
     }
     if (GetAsyncKeyState('C') & 0x8000) {
         //Sleep(2000);
-        n_py -= 5 * delta_time;
+       //n_py -= 5 * delta_time;
     }
 
 
@@ -3749,7 +3720,7 @@ int get_block(int x, int y, int z, std::unordered_map<std::tuple<int, int, int>,
     }
 }
 
-std::vector<float> block_breaking(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, std::vector<Slime>& slimes, float x_rotation, float y_rotation, float px, float py, float pz, float block_breaking) {
+std::vector<float> block_breaking(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, std::vector<Slime>& slimes, float x_rotation, float y_rotation, float px, float py, float pz, float block_breaking, bool& can_attack) {
     float a = cos(x_rotation);
     float b = tan(y_rotation);
     float c = sin(x_rotation);
@@ -3780,7 +3751,9 @@ std::vector<float> block_breaking(std::unordered_map<std::tuple<int, int, int>, 
             //std::cout << abs(x - slime.x) << " " << abs(y - slime.y) << " " << abs(y - slime.y) << " " << std::endl;
             if (abs(x - slime.x) < s &&
                 abs(y - slime.y) < s &&
-                abs(z - slime.z) < s) {
+                abs(z - slime.z) < s &&
+                can_attack == true) {
+                can_attack = false;
                 std::cout << "SLIME" << std::endl;
                 //Sleep(5000);
                 //std::cout << a << " " << b << " " << c << std::endl;
@@ -3789,8 +3762,7 @@ std::vector<float> block_breaking(std::unordered_map<std::tuple<int, int, int>, 
                 slime.x += a / 5;
                 slime.y += b / 5;
                 slime.z += c / 5;
-                slime.size *= 0.99;
-                slime.size -= 0.002;
+                slime.hp -= 1;
                 return { 0,0,0,0 };
 
             }
@@ -3928,6 +3900,7 @@ int main() {
     auto last_time = std::chrono::steady_clock::now();
     int render_distance = 4;
     double a = 1024 * 1024;
+    bool can_attack = true;
     float block_breaking_state = 0;
     std::tuple<int, int, int> block_to_break = std::make_tuple(0, 0, 0);
     std::vector<Slime> slimes;
@@ -3942,14 +3915,14 @@ int main() {
         // Generate two random numbers
         double randomAngle = angleDistribution(engine);
         double randomRange = rangeDistribution(engine);
-        Slime slime = { a + randomRange * sin(randomRange),a + 30,a + randomRange * cos(randomRange),0,0,0,2,16 * 6 };
-        //slimes.push_back(slime);
+        Slime slime = { a + randomRange * sin(randomRange),a + 30,a + randomRange * cos(randomRange),0,0,0,2,5,16 * 6 };
+        slimes.push_back(slime);
     }
     std::vector<std::vector<int>> blocks_to_add;
     while (true) {
         for (int i = 0; i < slimes.size(); i++) {
             Slime& slime = slimes[i];
-            if (slime.size < 1) {
+            if (slime.hp < 1) {
                 slimes.erase(slimes.begin() + i);
                 std::random_device rd;
                 std::default_random_engine engine(rd());
@@ -3961,7 +3934,7 @@ int main() {
                 // Generate two random numbers
                 double randomAngle = angleDistribution(engine);
                 double randomRange = rangeDistribution(engine);
-                Slime slime = { px + randomRange * sin(randomRange),py + 10,pz + randomRange * cos(randomRange),0,0,0,2,16 * 6 };
+                Slime slime = { px + randomRange * sin(randomRange),py + 10,pz + randomRange * cos(randomRange),0,0,0,2,10,16 * 6 };
                 slimes.push_back(slime);
                 break;
             }
@@ -4025,11 +3998,19 @@ int main() {
         std::chrono::duration<float> delta_seconds = current_time - last_time;
         last_time = current_time;
         float delta_time = delta_seconds.count();
-        std::cout << "fps " << static_cast<int>(1 / delta_time) << '\n';
+        //std::cout << "fps " << static_cast<int>(1 / delta_time) << '\n';
+        int myNumber = static_cast<int>(1 / delta_time);
+        std::string title = "FPS: " + std::to_string(myNumber);
+
+        // Convert std::string to LPCSTR (const char*) using c_str() method
+        const char* cstrTitle = title.c_str();
+
+        // Set the console title with the converted string
+        SetConsoleTitleA(cstrTitle);
 
         //BLOCK BREAKING
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-            std::vector<float> break_info = block_breaking(map_chunks, slimes, M_PI / 2 - x_rotation, y_rotation, px, py, pz, block_breaking_state);
+            std::vector<float> break_info = block_breaking(map_chunks, slimes, M_PI / 2 - x_rotation, y_rotation, px, py, pz, block_breaking_state, can_attack);
 
             std::tuple<int, int, int> key2 = std::make_tuple(break_info[0], break_info[1], break_info[2]);
             int x2, y2, z2;
@@ -4086,6 +4067,7 @@ int main() {
             }
         }
         else {
+            can_attack = true;
             block_breaking_state = 0;
             int x2 = std::get<0>(block_to_break);
             int y2 = std::get<1>(block_to_break);
