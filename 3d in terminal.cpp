@@ -3791,7 +3791,7 @@ std::vector<float> block_breaking(std::unordered_map<std::tuple<int, int, int>, 
     return { 0,0,0,0 };
 }
 
-std::tuple<int, int, int> block_placing(std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, float x_rotation, float y_rotation, float px, float py, float pz) {
+std::tuple<int, int, int> block_placing(int block_id,std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, float x_rotation, float y_rotation, float px, float py, float pz) {
     float a;
     if (cos(x_rotation) > 0) {
         a = 1;
@@ -3833,24 +3833,114 @@ std::tuple<int, int, int> block_placing(std::unordered_map<std::tuple<int, int, 
             int cx = (16 + x % 16) % 16;
             int cy = (16 + y % 16) % 16;
             int cz = (16 + z % 16) % 16;
-            chunk[16 * cz + cy] |= (static_cast<uint64_t>(0b0001) << (4 * cx));
+            chunk[16 * cz + cy] |= (static_cast<uint64_t>(block_id) << (4 * cx));
             return std::make_tuple(x, y, z);
         }
     }
     return std::make_tuple(0, 0, 0);
 }
 
+void LockMouseToWindow(HWND hWnd) {
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+    ClientToScreen(hWnd, reinterpret_cast<POINT*>(&rect.left));
+    ClientToScreen(hWnd, reinterpret_cast<POINT*>(&rect.right));
+    ClipCursor(&rect);
+}
 
+// Function to release the locked mouse cursor
+void ReleaseMouseLock() {
+    ClipCursor(NULL);
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+    case WM_CREATE:
+        // Hide the cursor when the window is created
+        ShowCursor(FALSE);
+        break;
+    case WM_CLOSE:
+        // Restore the cursor visibility before closing the window
+        ShowCursor(TRUE);
+        DestroyWindow(hWnd);
+        break;
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        break;
+    default:
+        return DefWindowProc(hWnd, message, wParam, lParam);
+    }
+    return 0;
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    WNDCLASSEX wcex = { sizeof(WNDCLASSEX), CS_HREDRAW | CS_VREDRAW, WndProc, 0, 0,
+                        hInstance, LoadIcon(NULL, IDI_APPLICATION),
+                        LoadCursor(NULL, IDC_ARROW), (HBRUSH)(COLOR_WINDOW + 1),
+                        NULL, L"CursorHidingWindowClass", LoadIcon(NULL, IDI_APPLICATION) };
+    RegisterClassEx(&wcex);
+
+    HWND hWnd = CreateWindow(L"CursorHidingWindowClass", L"Cursor Hiding Window", WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+
+    if (!hWnd) {
+        return 0;
+    }
+
+    ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);
+
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    return (int)msg.wParam;
+}
+
+void add_to_inventory(int inventory[9][64], int item_id) {
+    bool item_added=false;
+    for (int i = 0; i < 9; i++) {
+        if (inventory[i][0] == item_id) {
+            for (int j = 0; j < 64; j++) {
+                if (inventory[i][j] == 0) {
+                    inventory[i][j] = item_id;
+                    item_added = true;
+                    break;
+                }
+            }
+        }
+        else if (inventory[i][0] == 0) {
+            inventory[i][0] = item_id;
+            break;
+        }
+
+        if (item_added == true) {
+            break;
+        }
+    }
+}
 
 int main() {
+
+
     //std::cout << "vey very pre" << std::endl;
     int(*screen)[5] = new int[characters_per_row * number_of_columns][5];
+    int inventory[9][64];
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 64; j++) {
+            inventory[i][j] = 0;
+        }
+    }
+    int selected_item = 0;
     //std::cout << "vey pre" << std::endl;
     fill_screen(screen);
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_FONT_INFOEX fontInfo;
     fontInfo.cbSize = sizeof(fontInfo);
     GetCurrentConsoleFontEx(hConsole, FALSE, &fontInfo);
+
 
     // Set the console font to a monospaced font like "Consolas"
     wcscpy_s(fontInfo.FaceName, L"Consolas");
@@ -3860,41 +3950,6 @@ int main() {
     //std::cout << "pre" << std::endl;
     std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual> map_chunks;
     std::unordered_map<std::tuple<int, int, int>, std::unordered_map<std::tuple<int, int>, int, TupleHash2, TupleEqual2>, TupleHash, TupleEqual> map_triangles;
-    std::vector<std::vector<int>> faces = {
-        // Front face
-        {0, 1, 2,20},
-        {0, 3, 2,20},
-
-        // Left face
-        {0, 4, 7,22},
-        {0, 3, 7,22},
-
-        // Bottom face
-        {0, 1, 5,24},
-        {0, 4, 5,24},
-
-        // Back face
-        {4, 5, 6,26},
-        {4, 7, 6,26},
-
-        // Right face
-        {1, 5, 6,28},
-        {1, 2, 6,28},
-
-        // Top face
-        {3, 2, 6,30},
-        {3, 7, 6,30}
-    };
-    std::vector<std::vector<int>> vertices = {
-        {0,0,0},
-        {1,0,0},
-        {1,1,0},
-        {0,1,0},
-        {0,0,1},
-        {1,0,1},
-        {1,1,1},
-        {0,1,1},
-    };
     std::vector<std::vector<int>> UV_vertices = { {0,0},{1,0},{0,1},{1,1} };
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
@@ -3919,7 +3974,21 @@ int main() {
         slimes.push_back(slime);
     }
     std::vector<std::vector<int>> blocks_to_add;
+    //HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    COORD pos = { 0, 0 };
+    HWND hWnd = GetConsoleWindow();    //SetConsoleCursorPosition(hConsole, pos);
+    bool mouse_lock = true;
     while (true) {
+        if (GetAsyncKeyState('O') & 0x8000) { // Check if 'O' key is pressed
+            ShowCursor(TRUE);
+            ReleaseMouseLock();
+            mouse_lock = false; // Disable mouse lock
+        }
+        if (GetAsyncKeyState('L') & 0x8000) { // Check if 'L' key is pressed
+            ShowCursor(FALSE);
+            LockMouseToWindow(hWnd);
+            mouse_lock = true; // Enable mouse lock
+        }
         for (int i = 0; i < slimes.size(); i++) {
             Slime& slime = slimes[i];
             if (slime.hp < 1) {
@@ -4008,6 +4077,13 @@ int main() {
         // Set the console title with the converted string
         SetConsoleTitleA(cstrTitle);
 
+        for (int i = 0; i <= 9; ++i) {
+            if (GetAsyncKeyState('0' + (i+1)) & 0x8000) {
+                selected_item = i;
+                break; // Exit loop if a numeric key is pressed
+            }
+        }
+
         //BLOCK BREAKING
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
             std::vector<float> break_info = block_breaking(map_chunks, slimes, M_PI / 2 - x_rotation, y_rotation, px, py, pz, block_breaking_state, can_attack);
@@ -4029,10 +4105,9 @@ int main() {
                     int cy = (16 + static_cast<int>(y2) % 16) % 16;
                     int cz = (16 + static_cast<int>(z2) % 16) % 16;
                     if (get_block(x2, y2, z2, map_chunks) != 0) {
-                        for (int i = 0; i < 10; i++) {
-                        }
                         std::tuple<int, int, int> key = std::make_tuple(x2 / 16, y2 / 16, z2 / 16);
                         std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
+                        add_to_inventory(inventory, 1+(chunk[16 * cz + cy] >> 4 * cx) & 0b1111);
                         //int cx = (16 + x % 16) % 16;
                         //int cy = (16 + y % 16) % 16;
                         //int cz = (16 + z % 16) % 16;
@@ -4082,13 +4157,25 @@ int main() {
 
         //BLOCK PLACING
         if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) {
-            std::tuple<int, int, int> key2 = block_placing(map_chunks, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
-            int x2, y2, z2;
-            std::tie(x2, y2, z2) = key2;
-            std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
-            for (std::vector<int> block : blocks) {
-                auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
-                block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
+            if (inventory[selected_item][0] != 0) {
+                std::tuple<int, int, int> key2 = block_placing(inventory[selected_item][0]-1, map_chunks, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
+                int x2, y2, z2;
+                std::tie(x2, y2, z2) = key2;
+                if (x2 != 0) {
+                    for (int i = 0; i < 64; i++) {
+                        if (inventory[selected_item][i] == 0) {
+                            inventory[selected_item][i - 1] = 0;
+                        }
+                        else if (i==63){
+                            inventory[selected_item][i] = 0;
+                        }
+                    }
+                }
+                std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
+                for (std::vector<int> block : blocks) {
+                    auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
+                    block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
+                }
             }
         }
         for (int i = 0; i < slimes.size(); i++) {
