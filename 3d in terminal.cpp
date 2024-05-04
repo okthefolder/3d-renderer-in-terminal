@@ -177,6 +177,21 @@ std::vector<std::vector<int>> points = {
 
 std::vector<Point2> screen_vertices = { {characters_per_row / 2 - 1,number_of_columns / 2 - 1},{-characters_per_row / 2 + 1,-number_of_columns / 2 + 1},{characters_per_row / 2 - 1,-number_of_columns / 2 + 1},{-characters_per_row / 2 + 1,number_of_columns / 2 + 1} };
 
+std::vector<uint64_t> digits =
+{
+    0b0011110001100110110000111100001111000011110000110110011000111100/*0*/,
+    0b0001100000111000011110000001100000011000000110000001100001111110/*1*/,
+    0b0011110001100110110000110000001100001100000110000011000001111110/*2*/,
+    0b0011110001100110000000110000111000000011110000110110011000111100/*3*/,
+    0b0000110000011100001111000110110011001100111111110000110000001100/*4*/,
+    0b0111111101100000011000000111110000000011110000110110011000111100/*5*/,
+    0b0011110001100110110000001111110011000011110000110110011000111100/*6*/,
+    0b1111111100000011000001100000110000011000001100000110000001100000/*7*/,
+    0b0011110001100110110000111100001101100110110000110110011000111100/*8*/,
+    0b0011110001100110110000111100001101111111000000110110011000111100/*9*/
+};
+
+
 //1 left
 //2 front
 //3 bottom
@@ -1927,9 +1942,10 @@ std::vector<std::vector<int>> breaking_states=
 int texture_size = 16;
 float x_rotation = 0;
 float y_rotation = 0;
-double px = 1024 * 1024;
-double py = 1024 * 1024 + 16;
-double pz = 1024 * 1024;
+const int A = 10000;
+double px = A;
+double py = A + 30;
+double pz = A;
 
 std::vector<std::vector<int>> faces = {
     // Front face
@@ -2115,7 +2131,7 @@ std::vector<uint64_t> make_chunk(int cx, int cy, int cz, std::vector<std::vector
     for (int x = 0; x < 16; x++) {
         for (int z = 0; z < 16; z++) {
             int num1 = x;
-            int num2 = 1024 * 1024 - 16 * cy + static_cast<int>((perlin_noise[x][z] + 1) * 16);
+            int num2 = A - 16 * cy + static_cast<int>((perlin_noise[x][z] + 1) * 16);
             int num3 = z;
             for (int y = 0; y < 16; y++) {
                 if (y == num2) {
@@ -2262,7 +2278,7 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][number
         }*/
         //std::cout << "atributes to 0"<<std::endl;
         WORD attributes = 0;  // White text on black background
-        buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[screen[i][2]]);
+        buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[min(characters.size(),max(0,screen[i][2]))]);
         buffer[i].Attributes = 0;  // Clear existing foreground color bits
         //std::cout << "color" << std::endl;
         attributes = (screen[i][1]);  // Set foreground color (low nibble)
@@ -3463,14 +3479,14 @@ void controls(float& x_rotation, float& y_rotaion, double& px, double& py, doubl
         ty = max(1, dy) * delta_time;
     }
     //ty = -0.00001;
-    collisions(px, py, pz, txz, ty, txz, 0.3, 1.5, 0.3, blocks);
+    collisions(px, py-0.5, pz, txz, ty, txz, 0.3, 0.9, 0.3, blocks);
     /*if (ty == 0) {
         std::cout << "collision" << std::endl;
         //n_py = 0.1;
         dy = 0;
     }*/
     if (GetAsyncKeyState(VK_SPACE) & 0x8000 && ty == 0) {
-        dy = 3;
+        dy = 4;
     }
     if (GetAsyncKeyState('C') & 0x8000) {
         //Sleep(2000);
@@ -3498,7 +3514,7 @@ void controls(float& x_rotation, float& y_rotaion, double& px, double& py, doubl
     }
     //n_py--;
     //std::cout << "py" << n_py << std::endl;
-    collisions(px, py, pz, n_px, n_py, n_pz, 0.3, 1.5, 0.3, blocks);
+    collisions(px, py-0.5, pz, n_px, n_py, n_pz, 0.3, 0.9, 0.3, blocks);
     //std::cout << n_py << std::endl;
 
     px += n_px;
@@ -3952,18 +3968,27 @@ void draw_textured_rect(int screen[number_of_columns*characters_per_row][3], int
             screen[x0 + y0 * characters_per_row][0] = 0;
             float V_co = static_cast<float>(x0 - min(x, x + l_x)) / l_x;
             float U_co = static_cast<float>(y0 - min(y, y + l_y)) / l_y;
-            //int textureValue = characters.size() - 1 - textures[texture_id / 6][texture_id % 6][texture_size * (floor(std::get<0>(UV_co) * (texture_size - 1))) + (std::get<1>(UV_co) * (texture_size - 1))];
-            //int foregroundColor = colors[(texture_id / 6)][texture_id % 6][texture_size * (floor(std::get<0>(UV_co) * (texture_size - 1))) + (std::get<1>(UV_co) * (texture_size - 1))];
             int color = colors[color_id/6][color_id%6][(texture_size)*floor(U_co*(texture_size-1))+V_co*(texture_size-1)];
             int brightness = characters.size()-1-textures[texture_id / 6][texture_id % 6][(texture_size)*floor(U_co * (texture_size - 1)) + V_co * (texture_size - 1)];
-            //std::cout <<color<<"       ";
-            //Sleep(5);
             screen[x0 + y0 * characters_per_row][1] = color;
             screen[x0 + y0 * characters_per_row][2] = brightness;
         }
-        //std::cout << std::endl;
     }
-    //Sleep(10000);
+}
+
+void draw_digit(int screen[number_of_columns * characters_per_row][3], int x, int y, int l_x, int l_y, int brightness, int color, int digit) {
+    int texture_size = 8;
+    for (int x0 = min(x, x + l_x); x0 < max(x, x + l_x); x0++) {
+        for (int y0 = min(y, y + l_y); y0 < max(y, y + l_y); y0++) {
+            screen[x0 + y0 * characters_per_row][0] = 0;
+            float V_co = static_cast<float>(max(x, x + l_x)-x0) / l_x;
+            float U_co = static_cast<float>( max(y, y + l_y)-y0) / l_y;
+            int color_for_pixel = 1&(digits[digit]>>(static_cast<int>((texture_size)*floor(U_co * (texture_size)) + V_co * (texture_size - 1))));
+            //int brightness_for_pixel = characters.size() - 1 - textures[brightness / 6][brightness % 6][(texture_size)*floor(U_co * (texture_size - 1)) + V_co * (texture_size - 1)];
+            screen[x0 + y0 * characters_per_row][1] = 16*color_for_pixel;
+            screen[x0 + y0 * characters_per_row][2] = 0;
+        }
+    }
 }
 
 void draw_hotbar(int inventory[9][64], int screen[characters_per_row*number_of_columns][3]) {
@@ -3981,8 +4006,10 @@ void draw_hotbar(int inventory[9][64], int screen[characters_per_row*number_of_c
         //
         if (inventory[i][0] != 0) {
             draw_textured_rect(screen, x, y, l_x / 10, l_y, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
+            //draw_digit(screen, x, y+100, l_x / 10, l_y, 0,0,0);
         }else{
-            draw_rect(screen, x, y, l_x / 10, l_y, 2, 0);
+            draw_digit(screen, x, y, l_x / 20, l_y/2, 0, 0, i);
+            //draw_rect(screen, x, y, l_x / 10, l_y, 2, 0);
         }
         x += c;
     }
@@ -4023,7 +4050,6 @@ int main() {
     srand(static_cast<unsigned int>(time(nullptr)));
     auto last_time = std::chrono::steady_clock::now();
     int render_distance = 4;
-    double a = 1024 * 1024;
     bool can_attack = true;
     float block_breaking_state = 0;
     std::tuple<int, int, int> block_to_break = std::make_tuple(0, 0, 0);
@@ -4039,7 +4065,7 @@ int main() {
         // Generate two random numbers
         double randomAngle = angleDistribution(engine);
         double randomRange = rangeDistribution(engine);
-        Slime slime = { a + randomRange * sin(randomRange),a + 30,a + randomRange * cos(randomRange),0,0,0,2,5,16 * 6 };
+        Slime slime = { A + randomRange * sin(randomRange),A + 30,A + randomRange * cos(randomRange),0,0,0,2,5,16 * 6 };
         slimes.push_back(slime);
     }
     std::vector<std::vector<int>> blocks_to_add;
