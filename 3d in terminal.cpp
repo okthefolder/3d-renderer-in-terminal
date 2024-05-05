@@ -177,6 +177,8 @@ std::vector<std::vector<int>> points = {
 
 std::vector<Point2> screen_vertices = { {characters_per_row / 2 - 1,number_of_columns / 2 - 1},{-characters_per_row / 2 + 1,-number_of_columns / 2 + 1},{characters_per_row / 2 - 1,-number_of_columns / 2 + 1},{-characters_per_row / 2 + 1,number_of_columns / 2 + 1} };
 
+
+//too ¨big resolution
 std::vector<uint64_t> digits =
 {
     0b0011110001100110110000111100001111000011110000110110011000111100/*0*/,
@@ -4005,11 +4007,23 @@ void draw_hotbar(int inventory[9][64], int screen[characters_per_row*number_of_c
     for (int i = 0; i < 9;i++) {
         //
         if (inventory[i][0] != 0) {
+            int s;
+            for (s = 1; s < 64; s++) {
+                if (inventory[i][s] == 0) {
+                    break;
+                }
+            }
             draw_textured_rect(screen, x, y, l_x / 10, l_y, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
-            //draw_digit(screen, x, y+100, l_x / 10, l_y, 0,0,0);
+            if (s > 9) {
+                draw_digit(screen, x+l_x/30+1, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s / 10);
+                draw_digit(screen, x+2*l_x / 30, y+2*l_y/3, l_x / 30, l_y / 3, 0, 0, s % 10);
+            }
+            else {
+                draw_digit(screen, x+2*l_x/30, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s);
+            }
         }else{
-            draw_digit(screen, x, y, l_x / 20, l_y/2, 0, 0, i);
-            //draw_rect(screen, x, y, l_x / 10, l_y, 2, 0);
+            
+            draw_rect(screen, x, y, l_x / 10, l_y, 2, 0);
         }
         x += c;
     }
@@ -4052,6 +4066,7 @@ int main() {
     int render_distance = 4;
     bool can_attack = true;
     float block_breaking_state = 0;
+    float building_delay = 0;
     std::tuple<int, int, int> block_to_break = std::make_tuple(0, 0, 0);
     std::vector<Slime> slimes;
     for (int i = 0; i < 5; i++) {
@@ -4253,25 +4268,35 @@ int main() {
         //BLOCK PLACING
         if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) {
             if (inventory[selected_item][0] != 0) {
-                std::tuple<int, int, int> key2 = block_placing(inventory[selected_item][0]-1, map_chunks, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
-                int x2, y2, z2;
-                std::tie(x2, y2, z2) = key2;
-                if (x2 != 0) {
-                    for (int i = 0; i < 64; i++) {
-                        if (inventory[selected_item][i] == 0) {
-                            inventory[selected_item][i - 1] = 0;
-                        }
-                        else if (i==63){
-                            inventory[selected_item][i] = 0;
+                if (building_delay <= 0) {
+                    std::tuple<int, int, int> key2 = block_placing(inventory[selected_item][0] - 1, map_chunks, M_PI / 2 - x_rotation, y_rotation, px, py, pz);
+                    int x2, y2, z2;
+                    std::tie(x2, y2, z2) = key2;
+                    if (x2 != 0) {
+                        for (int i = 0; i < 64; i++) {
+                            if (inventory[selected_item][i] == 0) {
+                                inventory[selected_item][i - 1] = 0;
+                            }
+                            else if (i == 63) {
+                                inventory[selected_item][i] = 0;
+                            }
                         }
                     }
+                    building_delay = 0.1;
+                    std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
+                    for (std::vector<int> block : blocks) {
+                        auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
+                        block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
+                    }
                 }
-                std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
-                for (std::vector<int> block : blocks) {
-                    auto& triangles = map_triangles[std::make_tuple(block[0] / 16, block[1] / 16, block[2] / 16)];
-                    block_to_triangles(triangles, block, map_chunks, faces, UV_vertices, vertices);
+                else {
+                    building_delay -= delta_time;
+                    std::cout << building_delay<<std::endl;
                 }
             }
+        }
+        else {
+            building_delay = 0;
         }
         for (int i = 0; i < slimes.size(); i++) {
             std::vector<float> entiti_direction = calculate_enemy_direction(slimes[i], px, py, pz);
@@ -4288,4 +4313,3 @@ int main() {
 
     return 0;
 }
-
