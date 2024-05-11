@@ -1,4 +1,5 @@
 
+
 #include <iostream>
 #include <vector>
 #include <cstdlib>
@@ -1791,7 +1792,7 @@ std::vector<std::vector<std::vector<int>>> colors =
 },
 };
 
-std::vector<std::vector<int>> breaking_states=
+std::vector<std::vector<int>> breaking_states =
 {
             {
             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -2012,7 +2013,7 @@ std::vector<float> getDeerministicRandomVector(int x, int y) {
 void fill_screen(int screen[characters_per_row * number_of_columns][number_of_screen_variables]) {
     for (int i = 0; i < characters_per_row * number_of_columns; i++) {
         screen[i][0] = 1000000;
-        screen[i][1] = 16*9;
+        screen[i][1] = 16 * 9;
         screen[i][2] = 0;
     }
 }
@@ -2280,7 +2281,7 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][number
         }*/
         //std::cout << "atributes to 0"<<std::endl;
         WORD attributes = 0;  // White text on black background
-        buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[min(characters.size(),max(0,screen[i][2]))]);
+        buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[min(characters.size(), max(0, screen[i][2]))]);
         buffer[i].Attributes = 0;  // Clear existing foreground color bits
         //std::cout << "color" << std::endl;
         attributes = (screen[i][1]);  // Set foreground color (low nibble)
@@ -3013,7 +3014,7 @@ void interpolate(Point2_ref& v1, const Point2 v2, float z) {
 }
 
 void update_pixel(int screen[characters_per_row * number_of_columns][number_of_screen_variables], const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const int& triangle_index, const float area_abc, int texture_id, int breaking_state) {
-    //std::cout << x << " " << y << " " << z << std::endl;
+    //std::cout << z << std::endl;
     //if (z != 0 && abs(1 * y) < number_of_columns / 2 && abs(1 * x) < characters_per_row / 2) {
         //std::cout << characters_per_row * floor(1 * p_y_co) + number_of_columns / 2 * characters_per_row + characters_per_row / 2 + 1 * p_x_co<<"\n";
     if (z > 0 && z < screen[max(0, min((characters_per_row)*number_of_columns, characters_per_row * (number_of_columns / 2 + static_cast<int>(y)) + (characters_per_row / 2 + static_cast<int>(x))))][0]) {
@@ -3045,6 +3046,21 @@ void update_pixel(int screen[characters_per_row * number_of_columns][number_of_s
     //}
 }
 
+Point2 find_z_intersection(Point2 a, Point2 b, float nearClippingPlane) {
+    if (abs(a.z - b.z) > 0.1) { 
+        float t = (nearClippingPlane-a.z) / (a.z - b.z);
+        float intersection_x = a.x + t * (b.x - a.x);
+        float intersection_y = a.y + t * (b.y - a.y);
+        float intersection_u = a.u + t * (b.u - a.u);
+        float intersection_v = a.v + t * (b.v - a.v);
+
+        return {intersection_x,intersection_y, nearClippingPlane, intersection_u,intersection_v};
+    }
+    else {
+        return {(a.x+b.x)/2,(a.y + b.y) / 2,nearClippingPlane,(a.u + b.u) / 2,(a.v + b.v) / 2 };
+    }
+}
+
 void rasterize(int screen[characters_per_row * number_of_columns][number_of_screen_variables], Point2 a, Point2 b, Point2 c, int triangle_index, int texture_id, int breaking_state) {
     //std::vector<std::vector<float>> rasterized;
     std::vector<float> x_co_for_lines_1;
@@ -3066,7 +3082,6 @@ void rasterize(int screen[characters_per_row * number_of_columns][number_of_scre
         }
         return;
     }
-    //std::cout <<"start " << c.y << " " << number_of_columns / 2 << " " << max(abs(a.y), max(abs(b.y), abs(c.y))) << std::endl;
     if (max(abs(a.x), max(abs(b.x), abs(c.x))) > characters_per_row / 2 || (max(abs(a.y), max(abs(b.y), abs(c.y))) > number_of_columns / 2)) {
 
         //std::cout << "rge" << std::endl;
@@ -3377,35 +3392,49 @@ void update_screen(int screen[characters_per_row * number_of_columns][number_of_
                     Point2 point3 = { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 };
                     //std::cout << "böö" << std::endl;
                     if (isPointInFrontOfCamera(x_rotation, y_rotation, point1) || isPointInFrontOfCamera(x_rotation, y_rotation, point2) || isPointInFrontOfCamera(x_rotation, y_rotation, point3)) {
-                        //std::cout << "rotation" << '\n';
-
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co2, p_y_co2, p_z_co2);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co3, p_y_co3, p_z_co3);
                         float constant_x = number_of_columns * 4;
                         float constant_y = number_of_columns * 2;
-                        float constant = 2;
+                        float constant = 0;
                         //project on screen
-                        if (abs(p_z_co1 + constant) > 0.1 && abs(p_z_co2 + constant) > 0.1 && abs(p_z_co3 + constant) > 0.1) {
-                            //std::cout << "division" << '\n';
+                        const float nearClippingPlane = 0.1;
+                        Point2 a = { p_x_co1,p_y_co1 ,p_z_co1, p_u_co1,p_v_co1 };
+                        Point2 b = { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 };
+                        Point2 c = { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 };
+                        //std::cout << a.u << " " << a.v << " " << b.u << " " << b.v << " " << c.u << " " << c.v << " " << std::endl;
+                        if (max(a.z,max(b.z,c.z))>nearClippingPlane){
+                            if (a.z > nearClippingPlane && b.z < nearClippingPlane) {
+                                b = find_z_intersection(a, b, nearClippingPlane);
+                            }
+                            if (a.z < nearClippingPlane && b.z > nearClippingPlane) {
+                                a = find_z_intersection(a, b, nearClippingPlane);
+                            }
+                            if (b.z > nearClippingPlane && c.z < nearClippingPlane) {
+                                c = find_z_intersection(b, c, nearClippingPlane);
+                            }
+                            if (b.z < nearClippingPlane && c.z > nearClippingPlane) {
+                                b = find_z_intersection(b, c, nearClippingPlane);
+                            }
+                            if (c.z > nearClippingPlane && a.z < nearClippingPlane) {
+                                a = find_z_intersection(c, a, nearClippingPlane);
+                            }
+                            if (c.z < nearClippingPlane && a.z > nearClippingPlane) {
+                                c = find_z_intersection(c, a, nearClippingPlane);
+                            }
+                            a.x = constant_x * a.x / (a.z + constant);
+                            a.y = constant_y * a.y / (a.z + constant);
+                            a.z *= constant_x;
 
-                            p_x_co1 = constant_x * p_x_co1 / (p_z_co1 + constant);
-                            p_y_co1 = constant_y * p_y_co1 / (p_z_co1 + constant);
-                            p_z_co1 *= constant_x;
+                            b.x = constant_x * b.x / (b.z + constant);
+                            b.y = constant_y * b.y / (b.z + constant);
+                            b.z *= constant_x;
 
-                            p_x_co2 = constant_x * p_x_co2 / (p_z_co2 + constant);
-                            p_y_co2 = constant_y * p_y_co2 / (p_z_co2 + constant);
-                            p_z_co2 *= constant_x;
-
-                            p_x_co3 = constant_x * p_x_co3 / (p_z_co3 + constant);
-                            p_y_co3 = constant_y * p_y_co3 / (p_z_co3 + constant);
-                            p_z_co3 *= constant_x;
-                            //std::cout << ((triangle2 >> 16) & 0b11111111) << std::endl;
-                            //std::cout << "rasterize" << '\n';
-
-                            rasterize(screen, { p_x_co1,p_y_co1 ,p_z_co1, p_u_co1,p_v_co1 }, { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 }, { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 }, (triangle2 >> 12) & 0b1111, ((triangle2 >> 16) & 0b11111111), ((triangle2 >> 24) & 0b111));
-                            //std::cout << "rasterized" << '\n';
-
+                            c.x = constant_x * c.x / (c.z + constant);
+                            c.y = constant_y * c.y / (c.z + constant);
+                            c.z *= constant_x;
+                            rasterize(screen, a, b, c, (triangle2 >> 12) & 0b1111, ((triangle2 >> 16) & 0b11111111), ((triangle2 >> 24) & 0b111));
                         }
                     }
                 }
@@ -3481,7 +3510,7 @@ void controls(float& x_rotation, float& y_rotaion, double& px, double& py, doubl
         ty = max(1, dy) * delta_time;
     }
     //ty = -0.00001;
-    collisions(px, py-0.5, pz, txz, ty, txz, 0.3, 0.9, 0.3, blocks);
+    collisions(px, py - 0.5, pz, txz, ty, txz, 0.3, 0.9, 0.3, blocks);
     /*if (ty == 0) {
         std::cout << "collision" << std::endl;
         //n_py = 0.1;
@@ -3516,7 +3545,7 @@ void controls(float& x_rotation, float& y_rotaion, double& px, double& py, doubl
     }
     //n_py--;
     //std::cout << "py" << n_py << std::endl;
-    collisions(px, py-0.5, pz, n_px, n_py, n_pz, 0.3, 0.9, 0.3, blocks);
+    collisions(px, py - 0.5, pz, n_px, n_py, n_pz, 0.3, 0.9, 0.3, blocks);
     //std::cout << n_py << std::endl;
 
     px += n_px;
@@ -3823,7 +3852,7 @@ std::vector<float> block_breaking(std::unordered_map<std::tuple<int, int, int>, 
     return { 0,0,0,0 };
 }
 
-std::tuple<int, int, int> block_placing(int block_id,std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, float x_rotation, float y_rotation, float px, float py, float pz) {
+std::tuple<int, int, int> block_placing(int block_id, std::unordered_map<std::tuple<int, int, int>, std::vector<uint64_t>, TupleHash, TupleEqual>& map_chunks, float x_rotation, float y_rotation, float px, float py, float pz) {
     float a;
     if (cos(x_rotation) > 0) {
         a = 1;
@@ -3932,7 +3961,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 
 void add_to_inventory(int inventory[9][64], int item_id) {
-    bool item_added=false;
+    bool item_added = false;
     for (int i = 0; i < 9; i++) {
         if (inventory[i][0] == item_id) {
             for (int j = 0; j < 64; j++) {
@@ -3954,9 +3983,9 @@ void add_to_inventory(int inventory[9][64], int item_id) {
     }
 }
 
-void draw_rect(int screen[number_of_columns*characters_per_row][3], int x, int y, int l_x, int l_y, int color, int brightness) {
-    for (int x0 = min(x,x+l_x); x0 < max(x,x + l_x); x0++) {
-        for (int y0 = min(y,y+l_y); y0 < max(y, y + l_y); y0++) {
+void draw_rect(int screen[number_of_columns * characters_per_row][3], int x, int y, int l_x, int l_y, int color, int brightness) {
+    for (int x0 = min(x, x + l_x); x0 < max(x, x + l_x); x0++) {
+        for (int y0 = min(y, y + l_y); y0 < max(y, y + l_y); y0++) {
             screen[x0 + y0 * characters_per_row][0] = 0;
             screen[x0 + y0 * characters_per_row][1] = color;
             screen[x0 + y0 * characters_per_row][2] = brightness;
@@ -3964,14 +3993,14 @@ void draw_rect(int screen[number_of_columns*characters_per_row][3], int x, int y
     }
 }
 
-void draw_textured_rect(int screen[number_of_columns*characters_per_row][3], int x, int y, int l_x, int l_y, int texture_id, int color_id) {
+void draw_textured_rect(int screen[number_of_columns * characters_per_row][3], int x, int y, int l_x, int l_y, int texture_id, int color_id) {
     for (int x0 = min(x, x + l_x); x0 < max(x, x + l_x); x0++) {
         for (int y0 = min(y, y + l_y); y0 < max(y, y + l_y); y0++) {
             screen[x0 + y0 * characters_per_row][0] = 0;
             float V_co = static_cast<float>(x0 - min(x, x + l_x)) / l_x;
             float U_co = static_cast<float>(y0 - min(y, y + l_y)) / l_y;
-            int color = colors[color_id/6][color_id%6][(texture_size)*floor(U_co*(texture_size-1))+V_co*(texture_size-1)];
-            int brightness = characters.size()-1-textures[texture_id / 6][texture_id % 6][(texture_size)*floor(U_co * (texture_size - 1)) + V_co * (texture_size - 1)];
+            int color = colors[color_id / 6][color_id % 6][(texture_size)*floor(U_co * (texture_size - 1)) + V_co * (texture_size - 1)];
+            int brightness = characters.size() - 1 - textures[texture_id / 6][texture_id % 6][(texture_size)*floor(U_co * (texture_size - 1)) + V_co * (texture_size - 1)];
             screen[x0 + y0 * characters_per_row][1] = color;
             screen[x0 + y0 * characters_per_row][2] = brightness;
         }
@@ -3983,28 +4012,28 @@ void draw_digit(int screen[number_of_columns * characters_per_row][3], int x, in
     for (int x0 = min(x, x + l_x); x0 < max(x, x + l_x); x0++) {
         for (int y0 = min(y, y + l_y); y0 < max(y, y + l_y); y0++) {
             screen[x0 + y0 * characters_per_row][0] = 0;
-            float V_co = static_cast<float>(max(x, x + l_x)-x0) / l_x;
-            float U_co = static_cast<float>( max(y, y + l_y)-y0) / l_y;
-            int color_for_pixel = 1&(digits[digit]>>(static_cast<int>((texture_size)*floor(U_co * (texture_size)) + V_co * (texture_size - 1))));
+            float V_co = static_cast<float>(max(x, x + l_x) - x0) / l_x;
+            float U_co = static_cast<float>(max(y, y + l_y) - y0) / l_y;
+            int color_for_pixel = 1 & (digits[digit] >> (static_cast<int>((texture_size)*floor(U_co * (texture_size)) + V_co * (texture_size - 1))));
             //int brightness_for_pixel = characters.size() - 1 - textures[brightness / 6][brightness % 6][(texture_size)*floor(U_co * (texture_size - 1)) + V_co * (texture_size - 1)];
-            screen[x0 + y0 * characters_per_row][1] = 16*color_for_pixel;
+            screen[x0 + y0 * characters_per_row][1] = 16 * color_for_pixel;
             screen[x0 + y0 * characters_per_row][2] = 0;
         }
     }
 }
 
-void draw_hotbar(int inventory[9][64], int screen[characters_per_row*number_of_columns][3]) {
+void draw_hotbar(int inventory[9][64], int screen[characters_per_row * number_of_columns][3]) {
     int y = (5 * number_of_columns / 6);
-    int l_y = (1 * number_of_columns / 9) ;
-    int x = (1 * characters_per_row / 8) ;
+    int l_y = (1 * number_of_columns / 9);
+    int x = (1 * characters_per_row / 8);
     int l_x = (3 * characters_per_row / 4);
-    draw_rect(screen, x, y, l_x, l_y, 7*16, 0);
+    draw_rect(screen, x, y, l_x, l_y, 7 * 16, 0);
     y += number_of_columns / 90;
-    l_y -= 2*number_of_columns / 90;
+    l_y -= 2 * number_of_columns / 90;
     x += characters_per_row / 90;
     l_x -= 2 * characters_per_row / 90;
-    int c = l_x/9;
-    for (int i = 0; i < 9;i++) {
+    int c = l_x / 9;
+    for (int i = 0; i < 9; i++) {
         //
         if (inventory[i][0] != 0) {
             int s;
@@ -4015,14 +4044,15 @@ void draw_hotbar(int inventory[9][64], int screen[characters_per_row*number_of_c
             }
             draw_textured_rect(screen, x, y, l_x / 10, l_y, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
             if (s > 9) {
-                draw_digit(screen, x+l_x/30+1, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s / 10);
-                draw_digit(screen, x+2*l_x / 30, y+2*l_y/3, l_x / 30, l_y / 3, 0, 0, s % 10);
+                draw_digit(screen, x + l_x / 30 + 1, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s / 10);
+                draw_digit(screen, x + 2 * l_x / 30, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s % 10);
             }
             else {
-                draw_digit(screen, x+2*l_x/30, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s);
+                draw_digit(screen, x + 2 * l_x / 30, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s);
             }
-        }else{
-            
+        }
+        else {
+
             draw_rect(screen, x, y, l_x / 10, l_y, 2, 0);
         }
         x += c;
@@ -4031,7 +4061,7 @@ void draw_hotbar(int inventory[9][64], int screen[characters_per_row*number_of_c
 
 int main() {
 
-    const int number_of_screen_variables=3;
+    const int number_of_screen_variables = 3;
     //std::cout << "vey very pre" << std::endl;
     int(*screen)[number_of_screen_variables] = new int[characters_per_row * number_of_columns][number_of_screen_variables];
     //z
@@ -4081,7 +4111,7 @@ int main() {
         double randomAngle = angleDistribution(engine);
         double randomRange = rangeDistribution(engine);
         Slime slime = { A + randomRange * sin(randomRange),A + 30,A + randomRange * cos(randomRange),0,0,0,2,5,16 * 6 };
-        slimes.push_back(slime);
+        //slimes.push_back(slime);
     }
     std::vector<std::vector<int>> blocks_to_add;
     //HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -4188,7 +4218,7 @@ int main() {
         SetConsoleTitleA(cstrTitle);
 
         for (int i = 0; i <= 9; ++i) {
-            if (GetAsyncKeyState('0' + (i+1)) & 0x8000) {
+            if (GetAsyncKeyState('0' + (i + 1)) & 0x8000) {
                 selected_item = i;
                 break; // Exit loop if a numeric key is pressed
             }
@@ -4217,7 +4247,7 @@ int main() {
                     if (get_block(x2, y2, z2, map_chunks) != 0) {
                         std::tuple<int, int, int> key = std::make_tuple(x2 / 16, y2 / 16, z2 / 16);
                         std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
-                        add_to_inventory(inventory, 1+(chunk[16 * cz + cy] >> 4 * cx) & 0b1111);
+                        add_to_inventory(inventory, 1 + (chunk[16 * cz + cy] >> 4 * cx) & 0b1111);
                         //int cx = (16 + x % 16) % 16;
                         //int cy = (16 + y % 16) % 16;
                         //int cz = (16 + z % 16) % 16;
@@ -4291,7 +4321,7 @@ int main() {
                 }
                 else {
                     building_delay -= delta_time;
-                    std::cout << building_delay<<std::endl;
+                    std::cout << building_delay << std::endl;
                 }
             }
         }
