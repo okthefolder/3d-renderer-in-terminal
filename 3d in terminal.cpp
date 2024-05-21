@@ -2235,51 +2235,6 @@ void draw_screen(const int screen[characters_per_row * number_of_columns][number
     //std::cout << "hhh" << std::endl;
     // Populate the buffer with character data and attributes
     for (int i = 0; i < (characters_per_row - 1) * (number_of_columns - 1); ++i) {
-
-        //std::cout << i << std::endl;
-        /*int value = screen[i][0];
-
-        if (screen[i][2] != -1) {
-            int textureValue = characters.size() - 1 - textures[(screen[i][4]&0xFF) / 6][(screen[i][4]&0xFF) % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000];
-            //if (!(textureValue >= 0 && textureValue < 4)) {
-                //std::cout << textureValue<<" "<< static_cast<WCHAR>(characters[textureValue]) <<" "<< colors[(screen[i][4] / 6)][screen[i][4] % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000] << std::endl;
-            //}
-            // some of the characters dont work
-            if (textureValue >= 0 && textureValue < characters.size()) {
-                buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[textureValue]);
-            }
-            //buffer[i].Attributes |= FOREGROUND_BLUE;
-            //buffer[i].Char.UnicodeChar += static_cast<WCHAR>(characters[0]);
-        //}
-        }
-        else {
-            //int textureValue = textures[(screen[i][4] & 0xFF) / 6][(screen[i][4] & 0xFF) % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000];
-
-            //buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[textureValue]);
-            //buffer[i].Char.AsciiChar += L' ';;
-        }
-        //std::cout << screen[i][2]<<" "<<screen[i][3] << std::endl;
-        //std::cout << i << std::endl;
-        // Set custom attributes based on your requirements (white text on black background)
-        WORD attributes = 0;  // White text on black background
-        //std::cout << "start" << std::endl;
-        int foregroundColor;
-        if (screen[i][2] != -1) {
-            //std::cout << "hmmm "<< (screen[i][4] / 6)<<" " << screen[i][4] % 6 <<" "<< ((texture_size - 2) * (screen[i][2] * (texture_size)) / 1000) + (screen[i][3] * (texture_size-1)) / 1000 <<" size "<<colors[1][0].size() << std::endl;
-            foregroundColor = colors[((screen[i][4] & 0xFF) / 6)][(screen[i][4] & 0xFF) % 6][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000];
-            //std::cout << screen[i][4] << std::endl;
-            if (((screen[i][4]>>8) & 0xF) != 0) {
-                //std::cout << (screen[i][4] & 0b00000000111) << std::endl;
-                if (breaking_states[((screen[i][4] >> 8) & 0xF)][(texture_size) * ((screen[i][2] * (texture_size - 1)) / 1000) + (screen[i][3] * (texture_size - 1)) / 1000] == 1) {
-                    foregroundColor = 0;
-                }
-            }
-        }
-        else {
-            //std::cout << "bruh" << std::endl;
-            foregroundColor = 9 * 16 + 1;
-        }*/
-        //std::cout << "atributes to 0"<<std::endl;
         WORD attributes = 0;  // White text on black background
         buffer[i].Char.AsciiChar = static_cast<WCHAR>(characters[min(characters.size(), max(0, screen[i][2]))]);
         buffer[i].Attributes = 0;  // Clear existing foreground color bits
@@ -2531,23 +2486,53 @@ float area_of_3d_triangle(const Point2& a, const Point2& b, const Point2& c) {
     return area;
 }
 
-std::tuple<float, float> to_UV(const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const float area_abc) {
-    Point2 p = { x,y,z };
+template <typename T>
+T clamp(T value, T min, T max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
 
-    if (area_abc < 1) {
-        return std::make_tuple(0, 0);
+std::tuple<float, float> to_UV(const Point2& a, const Point2& b, const Point2& c, const float& x, const float& y, const float& z, const float area_abc) {
+    if (area_abc < std::numeric_limits<float>::epsilon()) {
+        return std::make_tuple(0.0f, 0.0f);
     }
-    const float u = calculateTriangleArea_Point2_v(b, c, p) / area_abc;
-    const float v = calculateTriangleArea_Point2_v(a, c, p) / area_abc;
-    const float w = 1 - u - v;
-    const float perspective_correction = z / (u * a.z + v * b.z + w * c.z);
-    float uva = perspective_correction * (u * a.u + v * b.u + w * c.u);
-    float uvb = perspective_correction * (u * a.v + v * b.v + w * c.v);
-    if (uva < 0.0f) uva = 0.0f;
-    if (uva > 1.0f) uva = 1.0f;
-    if (uvb < 0.0f) uvb = 0.0f;
-    if (uvb > 1.0f) uvb = 1.0f;
-    return std::make_tuple(uva, uvb);
+
+    // Compute barycentric coordinates
+    Point2 p = { x, y, z };
+    const float area_pbc = calculateTriangleArea_Point2_v(p, b, c);
+    const float area_pca = calculateTriangleArea_Point2_v(p, c, a);
+    const float u = area_pbc / area_abc;
+    const float v = area_pca / area_abc;
+    const float w = 1.0f - u - v;
+
+    // Calculate the inverse depth and UV coordinates at each vertex
+    float inv_za = 1.0f / a.z;
+    float inv_zb = 1.0f / b.z;
+    float inv_zc = 1.0f / c.z;
+
+    float u_za = a.u * inv_za;
+    float u_zb = b.u * inv_zb;
+    float u_zc = c.u * inv_zc;
+
+    float v_za = a.v * inv_za;
+    float v_zb = b.v * inv_zb;
+    float v_zc = c.v * inv_zc;
+
+    // Interpolate the inverse depth and the UV coordinates divided by depth
+    float inv_z = u * inv_za + v * inv_zb + w * inv_zc;
+    float u_z = u * u_za + v * u_zb + w * u_zc;
+    float v_z = u * v_za + v * v_zb + w * v_zc;
+
+    // Recover the correct UV coordinates
+    float correct_u = u_z / inv_z;
+    float correct_v = v_z / inv_z;
+
+    // Clamping UV coordinates to [0, 1] range
+    const float clamped_uva = clamp(correct_u, 0.0f, 1.0f);
+    const float clamped_uvb = clamp(correct_v, 0.0f, 1.0f);
+
+    return std::make_tuple(clamped_uva, clamped_uvb);
 }
 
 bool isPointInsideTriangle(const Point2& a, const Point2& b, const Point2& c, const Point2& p) {
@@ -3046,18 +3031,24 @@ void update_pixel(int screen[characters_per_row * number_of_columns][number_of_s
     //}
 }
 
-Point2 find_z_intersection(Point2 a, Point2 b, float nearClippingPlane) {
-    if (abs(a.z - b.z) > 0.1) { 
-        float t = (nearClippingPlane-a.z) / (a.z - b.z);
+Point2 find_z_intersection(Point2 a, Point2 b, float nearClippingPlane, Point2 c) {
+    if (fabs(a.z - b.z) > 0.001f) {
+        float t = (nearClippingPlane - a.z) / (b.z - a.z);
+
         float intersection_x = a.x + t * (b.x - a.x);
         float intersection_y = a.y + t * (b.y - a.y);
-        float intersection_u = a.u + t * (b.u - a.u);
-        float intersection_v = a.v + t * (b.v - a.v);
 
-        return {intersection_x,intersection_y, nearClippingPlane, intersection_u,intersection_v};
+        std::tuple<float,float> UV_co=to_UV(a, b, c, intersection_x, intersection_y, nearClippingPlane, calculateTriangleArea_Point2_v(a, b, c));
+        return { intersection_x, intersection_y, nearClippingPlane, std::get<0>(UV_co), std::get<1>(UV_co) };
     }
     else {
-        return {(a.x+b.x)/2,(a.y + b.y) / 2,nearClippingPlane,(a.u + b.u) / 2,(a.v + b.v) / 2 };
+        std::cout << "hi?" << std::endl;
+        float intersection_x = (a.x + b.x) / 2.0f;
+        float intersection_y = (a.y + b.y) / 2.0f;
+        float intersection_u = (a.u + b.u) / 2.0f;
+        float intersection_v = (a.v + b.v) / 2.0f;
+        return {};
+        //return { intersection_x, intersection_y, nearClippingPlane, intersection_u, intersection_v };
     }
 }
 
@@ -3118,7 +3109,11 @@ void rasterize(int screen[characters_per_row * number_of_columns][number_of_scre
             if (intpoint_inside_trigon(screen_vertices[i], a, b, c)) {
                 std::vector<float> plane_coefficients = plane_equation(a, b, c);
                 float p_z = -(plane_coefficients[3] + plane_coefficients[0] * screen_vertices[i].x + plane_coefficients[1] * screen_vertices[i].y) / plane_coefficients[2];
-                points_for_triangulation.push_back({ screen_vertices[i].x,screen_vertices[i].y, p_z });
+                std::vector<float> barycentric(3);
+                Point2 p = { screen_vertices[i].x,screen_vertices[i].y, p_z };
+                float area_abc= 0.5 * std::abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
+                std::tuple<float, float> UV_co = to_UV(a, b, c, p.x, p.y, p.z, area_abc);
+                points_for_triangulation.push_back({ screen_vertices[i].x,screen_vertices[i].y, p_z, std::get<0>(UV_co), std::get<1>(UV_co) });
             }
         }
         if (points_for_triangulation.size() != 0) {
@@ -3238,18 +3233,10 @@ void rasterize(int screen[characters_per_row * number_of_columns][number_of_scre
                             update_pixel(screen, a, b, c, x, c.y - i, z_co_for_lines_2[i] + (x - x_co_for_lines_2[i]) * (z_co_for_lines_1[i] - z_co_for_lines_2[i]) / (x_co_for_lines_1[i] - x_co_for_lines_2[i]), triangle_index, area_abc, texture_id, breaking_state);
                         }
                     }
-                    else {
-                        //if (z_co_for_lines_1[i]>0.1)
-                        //rasterized.push_back({ x, c.y - i, z_co_for_lines_1[i] });
-                    }
                 }
             }
         }
     }
-    //if (rasterized.size() < 2) {
-        //std::cout << "rgrdhhrd" << std::endl;
-    //}
-    //return rasterized;
 }
 
 void add_perspective(float& p_x_co1, float& p_y_co1, float& p_z_co1) {
@@ -3395,8 +3382,8 @@ void update_screen(int screen[characters_per_row * number_of_columns][number_of_
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co1, p_y_co1, p_z_co1);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co2, p_y_co2, p_z_co2);
                         add_rotation(x_rotation, y_rotation - 3.14 / 2, p_x_co3, p_y_co3, p_z_co3);
-                        float constant_x = number_of_columns * 4;
-                        float constant_y = number_of_columns * 2;
+                        float constant_x = number_of_columns * 2;
+                        float constant_y = number_of_columns * 1;
                         float constant = 0;
                         //project on screen
                         const float nearClippingPlane = 0.1;
@@ -3406,22 +3393,22 @@ void update_screen(int screen[characters_per_row * number_of_columns][number_of_
                         //std::cout << a.u << " " << a.v << " " << b.u << " " << b.v << " " << c.u << " " << c.v << " " << std::endl;
                         if (max(a.z,max(b.z,c.z))>nearClippingPlane){
                             if (a.z > nearClippingPlane && b.z < nearClippingPlane) {
-                                b = find_z_intersection(a, b, nearClippingPlane);
+                                b = find_z_intersection(a, b, nearClippingPlane,c);
                             }
-                            if (a.z < nearClippingPlane && b.z > nearClippingPlane) {
-                                a = find_z_intersection(a, b, nearClippingPlane);
+                            else if (a.z < nearClippingPlane && b.z > nearClippingPlane) {
+                                a = find_z_intersection(a, b, nearClippingPlane,c);
                             }
                             if (b.z > nearClippingPlane && c.z < nearClippingPlane) {
-                                c = find_z_intersection(b, c, nearClippingPlane);
+                                c = find_z_intersection(b, c, nearClippingPlane,a);
                             }
-                            if (b.z < nearClippingPlane && c.z > nearClippingPlane) {
-                                b = find_z_intersection(b, c, nearClippingPlane);
+                            else if (b.z < nearClippingPlane && c.z > nearClippingPlane) {
+                                b = find_z_intersection(b, c, nearClippingPlane,a);
                             }
                             if (c.z > nearClippingPlane && a.z < nearClippingPlane) {
-                                a = find_z_intersection(c, a, nearClippingPlane);
+                                a = find_z_intersection(c, a, nearClippingPlane,b);
                             }
-                            if (c.z < nearClippingPlane && a.z > nearClippingPlane) {
-                                c = find_z_intersection(c, a, nearClippingPlane);
+                            else if (c.z < nearClippingPlane && a.z > nearClippingPlane) {
+                                c = find_z_intersection(c, a, nearClippingPlane,b);
                             }
                             a.x = constant_x * a.x / (a.z + constant);
                             a.y = constant_y * a.y / (a.z + constant);
@@ -4336,7 +4323,7 @@ int main() {
         }
         controls(x_rotation, y_rotation, px, py, pz, min(0.05, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
         update_screen(screen, map_triangles, slimes, x_rotation, y_rotation, px, py, pz);
-        draw_hotbar(inventory, screen);
+        //draw_hotbar(inventory, screen);
         draw_screen(screen);
 
     }
