@@ -1,6 +1,7 @@
 
 
 
+
 #include <iostream>
 #include <vector>
 #include <cstdlib>
@@ -3979,9 +3980,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     return (int)msg.wParam;
 }
 
-void add_to_inventory(int inventory[9][64], int item_id) {
+void add_to_inventory(int inventory[45][64], int item_id) {
     bool item_added = false;
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 45; i++) {
         if (inventory[i][0] == item_id) {
             for (int j = 0; j < 64; j++) {
                 if (inventory[i][j] == 0) {
@@ -4041,7 +4042,7 @@ void draw_digit(int screen[number_of_columns * characters_per_row][3], int x, in
     }
 }
 
-void draw_hotbar(int inventory[9][64], int screen[characters_per_row * number_of_columns][3]) {
+void draw_hotbar(int inventory[45][64], int screen[characters_per_row * number_of_columns][3]) {
     int y = (5 * number_of_columns / 6);
     int l_y = (1 * number_of_columns / 9);
     int x = (1 * characters_per_row / 8);
@@ -4112,7 +4113,7 @@ void printWindowTitle(HWND hwnd) {
 
 void getConsoleDimensions(int& width, int& height, HWND hwnd) {
     // Get the console window handle
-    printWindowTitle(hwnd);
+    //printWindowTitle(hwnd);
     // Check if the console window handle is valid
     if (hwnd == NULL) {
         width = -1;
@@ -4129,7 +4130,7 @@ void getConsoleDimensions(int& width, int& height, HWND hwnd) {
     if (GetWindowRect(hwnd, &clientRect)) {
         width = clientRect.right - clientRect.left;
         height = clientRect.bottom - clientRect.top;
-        std::cout << width << " " << height << std::endl;
+        //std::cout << width << " " << height << std::endl;
     }
     else {
         width = -1;
@@ -4160,8 +4161,8 @@ std::tuple<int, int> getMousePositionInConsole(HANDLE hConsoleOutput, HWND hwnd)
     columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
     rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
     //std::cout << width << " " << columns << " " << height << " " << rows << std::endl;
-    int p_x = (static_cast<int>(p.x) * columns)/width;
-    int p_y = (static_cast<int>(p.y) * rows)/height;
+    int p_x = (static_cast<int>(p.x) * columns) / width;
+    int p_y = (static_cast<int>(p.y) * rows) / height;
 
     std::tuple<int, int> coord = std::make_tuple(p_x, p_y);
     return coord;
@@ -4169,7 +4170,7 @@ std::tuple<int, int> getMousePositionInConsole(HANDLE hConsoleOutput, HWND hwnd)
 
 
 
-void draw_inventory(int screen[characters_per_row * number_of_columns][3], int inventory[9][64], std::tuple<int, int> mousePosition) {
+void draw_inventory(int screen[characters_per_row * number_of_columns][3], int inventory[45][64], std::tuple<int, int> mousePosition) {
     int mousePosition_x = std::get<0>(mousePosition);
     int mousePosition_y = std::get<1>(mousePosition);
 
@@ -4177,16 +4178,40 @@ void draw_inventory(int screen[characters_per_row * number_of_columns][3], int i
     int l_y = (4 * number_of_columns / 6);
     int x = (1 * characters_per_row / 8);
     int l_x = (3 * characters_per_row / 4);
-    draw_rect(screen, x, y, l_x, l_y, 2, 0);
+    draw_rect(screen, x, y, l_x, l_y, 0, 0);
+    int i = 0;
     //draw_rect(screen, mousePosition.X, mousePosition.Y, 20, 20, 7, 7);
-    for (int x0 = x; x0 < x + l_x; x0 += l_x / 9 + 1) {
-        for (int y0 = y; y0 < y + l_y; y0 += l_y / 5) {
-            if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
+    for (int y0 = y; y0 < y + l_y; y0 += l_y / 5) {
+        for (int x0 = x; x0 < x + l_x; x0 += l_x / 9 + 1) {
+
+            if (inventory[i][0] != 0) {
+                int s;
+                for (s = 1; s < 64; s++) {
+                    if (inventory[i][s] == 0) {
+                        break;
+                    }
+                }
+
+                draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
+                if (s > 9) {
+                    draw_digit(screen, x0 + l_x / 30 + 1, y0 + 2 * l_y / 18+1, l_x / 30, l_y / 18, 0, 0, s / 10);
+                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18+1, l_x / 30, l_y / 18, 0, 0, s % 10);
+                }
+                else {
+                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18+1, l_x / 30, l_y / 18, 0, 0, s);
+                }
+            }
+            else {
+
+                draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 0);
+            }
+            /*if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
                 draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 7, 7);
             }
             else {
                 draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 5, 5);
-            }
+            }*/
+            i++;
         }
     }
     //draw_rect(screen, mousePosition_x, mousePosition_y, 10, 10,1,1);
@@ -4225,8 +4250,8 @@ int main() {
     //z
     //color
     //brigthness
-    int inventory[9][64];
-    for (int i = 0; i < 9; i++) {
+    int inventory[45][64];
+    for (int i = 0; i < 45; i++) {
         for (int j = 0; j < 64; j++) {
             inventory[i][j] = 0;
         }
@@ -4402,7 +4427,7 @@ int main() {
                 //std::cout << block_breaking_state << std::endl;
 
                 //Sleep(200);
-                if (block_breaking_state > 1) {
+                if (block_breaking_state > 0) {
                     block_breaking_state = 0;
                     int cx = (16 + static_cast<int>(x2) % 16) % 16;
                     int cy = (16 + static_cast<int>(y2) % 16) % 16;
