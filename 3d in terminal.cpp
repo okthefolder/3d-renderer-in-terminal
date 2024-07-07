@@ -1,5 +1,6 @@
 
 
+
 #include <iostream>
 #include <vector>
 #include <cstdlib>
@@ -56,7 +57,6 @@ struct Point3 {
         return { -vec.x, -vec.y, -vec.z };
     }
 };
-
 
 struct BoundingBox {
     float px;
@@ -3038,7 +3038,7 @@ Point2 find_z_intersection(Point2 a, Point2 b, float nearClippingPlane, Point2 c
         float intersection_x = a.x + t * (b.x - a.x);
         float intersection_y = a.y + t * (b.y - a.y);
 
-        std::tuple<float,float> UV_co=to_UV(a, b, c, intersection_x, intersection_y, nearClippingPlane, calculateTriangleArea_Point2_v(a, b, c));
+        std::tuple<float, float> UV_co = to_UV(a, b, c, intersection_x, intersection_y, nearClippingPlane, calculateTriangleArea_Point2_v(a, b, c));
         return { intersection_x, intersection_y, nearClippingPlane, std::get<0>(UV_co), std::get<1>(UV_co) };
     }
     else {
@@ -3111,7 +3111,7 @@ void rasterize(int screen[characters_per_row * number_of_columns][number_of_scre
                 float p_z = -(plane_coefficients[3] + plane_coefficients[0] * screen_vertices[i].x + plane_coefficients[1] * screen_vertices[i].y) / plane_coefficients[2];
                 std::vector<float> barycentric(3);
                 Point2 p = { screen_vertices[i].x,screen_vertices[i].y, p_z };
-                float area_abc= 0.5 * std::abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
+                float area_abc = 0.5 * std::abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
                 std::tuple<float, float> UV_co = to_UV(a, b, c, p.x, p.y, p.z, area_abc);
                 points_for_triangulation.push_back({ screen_vertices[i].x,screen_vertices[i].y, p_z, std::get<0>(UV_co), std::get<1>(UV_co) });
             }
@@ -3240,9 +3240,9 @@ void rasterize(int screen[characters_per_row * number_of_columns][number_of_scre
 }
 
 void add_perspective(float& p_x_co1, float& p_y_co1, float& p_z_co1) {
-    float constant_x = number_of_columns * 4;
-    float constant_y = number_of_columns * 2;
-    float constant = 2;
+    float constant_x = number_of_columns * 2;
+    float constant_y = number_of_columns * 1;
+    float constant = 0;
     p_x_co1 = constant_x * p_x_co1 / (p_z_co1 + constant);
     p_y_co1 = constant_y * p_y_co1 / (p_z_co1 + constant);
     p_z_co1 *= constant_x;
@@ -3391,24 +3391,24 @@ void update_screen(int screen[characters_per_row * number_of_columns][number_of_
                         Point2 b = { p_x_co2,p_y_co2 ,p_z_co2, p_u_co2,p_v_co2 };
                         Point2 c = { p_x_co3,p_y_co3 ,p_z_co3, p_u_co3,p_v_co3 };
                         //std::cout << a.u << " " << a.v << " " << b.u << " " << b.v << " " << c.u << " " << c.v << " " << std::endl;
-                        if (max(a.z,max(b.z,c.z))>nearClippingPlane){
+                        if (max(a.z, max(b.z, c.z)) > nearClippingPlane) {
                             if (a.z > nearClippingPlane && b.z < nearClippingPlane) {
-                                b = find_z_intersection(a, b, nearClippingPlane,c);
+                                b = find_z_intersection(a, b, nearClippingPlane, c);
                             }
                             else if (a.z < nearClippingPlane && b.z > nearClippingPlane) {
-                                a = find_z_intersection(a, b, nearClippingPlane,c);
+                                a = find_z_intersection(a, b, nearClippingPlane, c);
                             }
                             if (b.z > nearClippingPlane && c.z < nearClippingPlane) {
-                                c = find_z_intersection(b, c, nearClippingPlane,a);
+                                c = find_z_intersection(b, c, nearClippingPlane, a);
                             }
                             else if (b.z < nearClippingPlane && c.z > nearClippingPlane) {
-                                b = find_z_intersection(b, c, nearClippingPlane,a);
+                                b = find_z_intersection(b, c, nearClippingPlane, a);
                             }
                             if (c.z > nearClippingPlane && a.z < nearClippingPlane) {
-                                a = find_z_intersection(c, a, nearClippingPlane,b);
+                                a = find_z_intersection(c, a, nearClippingPlane, b);
                             }
                             else if (c.z < nearClippingPlane && a.z > nearClippingPlane) {
-                                c = find_z_intersection(c, a, nearClippingPlane,b);
+                                c = find_z_intersection(c, a, nearClippingPlane, b);
                             }
                             a.x = constant_x * a.x / (a.z + constant);
                             a.y = constant_y * a.y / (a.z + constant);
@@ -3451,12 +3451,44 @@ void update_screen(int screen[characters_per_row * number_of_columns][number_of_
                 add_rotation(x_rotation, y_rotation - M_PI / 2, a.x, a.y, a.z);
                 add_rotation(x_rotation, y_rotation - M_PI / 2, b.x, b.y, b.z);
                 add_rotation(x_rotation, y_rotation - M_PI / 2, c.x, c.y, c.z);
-
-                add_perspective(a.x, a.y, a.z);
-                add_perspective(b.x, b.y, b.z);
-                add_perspective(c.x, c.y, c.z);
+                const float nearClippingPlane = 0.1;
+                float constant_x = number_of_columns * 2;
+                float constant_y = number_of_columns * 1;
+                float constant = 0;
                 i++;
-                rasterize(screen, a, b, c, index, slime.texture_id, 0);
+                if (max(a.z, max(b.z, c.z)) > nearClippingPlane) {
+                    if (a.z > nearClippingPlane && b.z < nearClippingPlane) {
+                        b = find_z_intersection(a, b, nearClippingPlane, c);
+                    }
+                    else if (a.z < nearClippingPlane && b.z > nearClippingPlane) {
+                        a = find_z_intersection(a, b, nearClippingPlane, c);
+                    }
+                    if (b.z > nearClippingPlane && c.z < nearClippingPlane) {
+                        c = find_z_intersection(b, c, nearClippingPlane, a);
+                    }
+                    else if (b.z < nearClippingPlane && c.z > nearClippingPlane) {
+                        b = find_z_intersection(b, c, nearClippingPlane, a);
+                    }
+                    if (c.z > nearClippingPlane && a.z < nearClippingPlane) {
+                        a = find_z_intersection(c, a, nearClippingPlane, b);
+                    }
+                    else if (c.z < nearClippingPlane && a.z > nearClippingPlane) {
+                        c = find_z_intersection(c, a, nearClippingPlane, b);
+                    }
+                    a.x = constant_x * a.x / (a.z + constant);
+                    a.y = constant_y * a.y / (a.z + constant);
+                    a.z *= constant_x;
+
+                    b.x = constant_x * b.x / (b.z + constant);
+                    b.y = constant_y * b.y / (b.z + constant);
+                    b.z *= constant_x;
+
+                    c.x = constant_x * c.x / (c.z + constant);
+                    c.y = constant_y * c.y / (c.z + constant);
+                    c.z *= constant_x;
+                    rasterize(screen, a, b, c, index, slime.texture_id, 0);
+                }
+
             }
         }
     }
@@ -3498,11 +3530,11 @@ void controls(float& x_rotation, float& y_rotaion, double& px, double& py, doubl
     }
     //ty = -0.00001;
     collisions(px, py - 0.5, pz, txz, ty, txz, 0.3, 0.9, 0.3, blocks);
-    /*if (ty == 0) {
-        std::cout << "collision" << std::endl;
+    if (ty == 0) {
+        //std::cout << "collision" << std::endl;
         //n_py = 0.1;
         dy = 0;
-    }*/
+    }
     if (GetAsyncKeyState(VK_SPACE) & 0x8000 && ty == 0) {
         dy = 4;
     }
@@ -4046,10 +4078,149 @@ void draw_hotbar(int inventory[9][64], int screen[characters_per_row * number_of
     }
 }
 
-int main() {
+COORD GetConsoleFontSize(HANDLE hConsoleOutput) {
+    CONSOLE_FONT_INFOEX cfi;
+    cfi.cbSize = sizeof(cfi);
+    GetCurrentConsoleFontEx(hConsoleOutput, FALSE, &cfi);
+    COORD fontSize = { cfi.dwFontSize.X, cfi.dwFontSize.Y };
+    return fontSize;
+}
 
+void printWindowTitle(HWND hwnd) {
+    wchar_t windowTitle[256];
+
+    // Check if the handle is valid
+    if (hwnd == NULL) {
+        std::cerr << "Error: Invalid window handle." << std::endl;
+        return;
+    }
+
+    // Attempt to retrieve the window title
+    if (GetWindowText(hwnd, windowTitle, 256) > 0) {
+        std::wcout << L"Window Title: " << windowTitle << std::endl;
+    }
+    else {
+        DWORD error = GetLastError();
+        if (error == 0) {
+            std::cerr << "Error: GetWindowText returned 0, but GetLastError returned 0 indicating no error. This may happen if the window has no title." << std::endl;
+        }
+        else {
+            std::cerr << "Error: GetWindowText failed with error code " << error << std::endl;
+        }
+    }
+}
+
+void getConsoleDimensions(int& width, int& height, HWND hwnd) {
+    // Get the console window handle
+    printWindowTitle(hwnd);
+    // Check if the console window handle is valid
+    if (hwnd == NULL) {
+        width = -1;
+        height = -1;
+        return;
+    }
+
+
+
+    // Structure to hold the client area dimensions
+    RECT clientRect;
+
+    // Get the dimensions of the client area of the console window
+    if (GetWindowRect(hwnd, &clientRect)) {
+        width = clientRect.right - clientRect.left;
+        height = clientRect.bottom - clientRect.top;
+        std::cout << width << " " << height << std::endl;
+    }
+    else {
+        width = -1;
+        height = -1;
+    }
+}
+
+std::tuple<int, int> getMousePositionInConsole(HANDLE hConsoleOutput, HWND hwnd) {
+    POINT p;
+    // Get current cursor position in screen coordinates
+    if (GetCursorPos(&p)) {
+        // Get console window handle
+        HWND hwndConsole = GetConsoleWindow();
+
+        // Convert screen coordinates to client coordinates of console window
+        ScreenToClient(hwndConsole, &p);
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(hConsoleOutput, &csbi);
+        //std::cout << p.x << " " << p.y<< std::endl;
+    }
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    int columns, rows;
+
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    int width, height;
+    getConsoleDimensions(width, height, hwnd);
+
+    columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    //std::cout << width << " " << columns << " " << height << " " << rows << std::endl;
+    int p_x = (static_cast<int>(p.x) * columns)/width;
+    int p_y = (static_cast<int>(p.y) * rows)/height;
+
+    std::tuple<int, int> coord = std::make_tuple(p_x, p_y);
+    return coord;
+}
+
+
+
+void draw_inventory(int screen[characters_per_row * number_of_columns][3], int inventory[9][64], std::tuple<int, int> mousePosition) {
+    int mousePosition_x = std::get<0>(mousePosition);
+    int mousePosition_y = std::get<1>(mousePosition);
+
+    int y = (number_of_columns / 6);
+    int l_y = (4 * number_of_columns / 6);
+    int x = (1 * characters_per_row / 8);
+    int l_x = (3 * characters_per_row / 4);
+    draw_rect(screen, x, y, l_x, l_y, 2, 0);
+    //draw_rect(screen, mousePosition.X, mousePosition.Y, 20, 20, 7, 7);
+    for (int x0 = x; x0 < x + l_x; x0 += l_x / 9 + 1) {
+        for (int y0 = y; y0 < y + l_y; y0 += l_y / 5) {
+            if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
+                draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 7, 7);
+            }
+            else {
+                draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 5, 5);
+            }
+        }
+    }
+    //draw_rect(screen, mousePosition_x, mousePosition_y, 10, 10,1,1);
+}
+
+void setConsoleTitle(const std::wstring& title) {
+    if (!SetConsoleTitle(title.c_str())) {
+        DWORD error = GetLastError();
+        std::cerr << "Error: SetConsoleTitle failed with error code " << error << std::endl;
+    }
+    else {
+        std::wcout << L"SetConsoleTitle succeeded. New title: " << title << std::endl;
+    }
+}
+
+HWND findConsoleWindow(const std::wstring& windowTitle) {
+    return FindWindow(NULL, windowTitle.c_str());
+}
+
+int main() {
+    std::wstring newTitle = L"My Console Window";
+    setConsoleTitle(newTitle);
+
+    HWND hwndConsole = findConsoleWindow(newTitle);
+    if (hwndConsole != NULL) {
+        std::wcout << L"Console window handle found: " << hwndConsole << std::endl;
+    }
+    else {
+        DWORD error = GetLastError();
+        std::cerr << "Error: FindWindow failed with error code " << error << std::endl;
+    }
+    //Sleep(1);
+    bool show_inventory = false;
     const int number_of_screen_variables = 3;
-    //std::cout << "vey very pre" << std::endl;
     int(*screen)[number_of_screen_variables] = new int[characters_per_row * number_of_columns][number_of_screen_variables];
     //z
     //color
@@ -4098,13 +4269,18 @@ int main() {
         double randomAngle = angleDistribution(engine);
         double randomRange = rangeDistribution(engine);
         Slime slime = { A + randomRange * sin(randomRange),A + 30,A + randomRange * cos(randomRange),0,0,0,2,5,16 * 6 };
-        //slimes.push_back(slime);
+        slimes.push_back(slime);
     }
     std::vector<std::vector<int>> blocks_to_add;
     //HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     COORD pos = { 0, 0 };
     HWND hWnd = GetConsoleWindow();    //SetConsoleCursorPosition(hConsole, pos);
     bool mouse_lock = true;
+    HANDLE hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    //COORD mousePosition = { -1, -1 };
+
+
     while (true) {
         if (GetAsyncKeyState('O') & 0x8000) { // Check if 'O' key is pressed
             ShowCursor(TRUE);
@@ -4112,8 +4288,8 @@ int main() {
             mouse_lock = false; // Disable mouse lock
         }
         if (GetAsyncKeyState('L') & 0x8000) { // Check if 'L' key is pressed
-            ShowCursor(FALSE);
-            LockMouseToWindow(hWnd);
+            //ShowCursor(FALSE);
+            //LockMouseToWindow(hWnd);
             mouse_lock = true; // Enable mouse lock
         }
         for (int i = 0; i < slimes.size(); i++) {
@@ -4196,13 +4372,13 @@ int main() {
         float delta_time = delta_seconds.count();
         //std::cout << "fps " << static_cast<int>(1 / delta_time) << '\n';
         int myNumber = static_cast<int>(1 / delta_time);
-        std::string title = "FPS: " + std::to_string(myNumber);
+        //std::string title = "FPS: " + std::to_string(myNumber);
 
         // Convert std::string to LPCSTR (const char*) using c_str() method
-        const char* cstrTitle = title.c_str();
+        //const char* cstrTitle = title.c_str();
 
         // Set the console title with the converted string
-        SetConsoleTitleA(cstrTitle);
+        //SetConsoleTitleA(cstrTitle);
 
         for (int i = 0; i <= 9; ++i) {
             if (GetAsyncKeyState('0' + (i + 1)) & 0x8000) {
@@ -4308,7 +4484,7 @@ int main() {
                 }
                 else {
                     building_delay -= delta_time;
-                    std::cout << building_delay << std::endl;
+                    //std::cout << building_delay << std::endl;
                 }
             }
         }
@@ -4321,12 +4497,26 @@ int main() {
             slimes[i].dz = -entiti_direction[1];
             entiti_physics(slimes[i], min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, slimes[i].x, slimes[i].y, slimes[i].z));
         }
+
+        if (GetAsyncKeyState('R') & 0x8000) {
+            if (show_inventory == false) {
+                show_inventory = true;
+            }
+            else {
+                show_inventory = false;
+            }
+            Sleep(10);
+        }
+        std::tuple<int, int> mousePosition = getMousePositionInConsole(hConsoleOutput, hwndConsole);
         controls(x_rotation, y_rotation, px, py, pz, min(0.05, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
         update_screen(screen, map_triangles, slimes, x_rotation, y_rotation, px, py, pz);
-        //draw_hotbar(inventory, screen);
+        if (show_inventory) {
+            draw_inventory(screen, inventory, mousePosition);
+        }
+        else {
+            draw_hotbar(inventory, screen);
+        }
         draw_screen(screen);
-
     }
-
     return 0;
 }
