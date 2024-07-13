@@ -1,7 +1,3 @@
-
-
-
-
 #include <iostream>
 #include <vector>
 #include <cstdlib>
@@ -159,7 +155,7 @@ int unique_blocks = 1;
 // for 3 (626,160)
 //keep the numbers even
 const int characters_per_row = 940;
-const int number_of_columns = 240;
+const int number_of_columns = 270;
 const float FOV = 2 * M_PI / 3;  // Field of view in degrees
 const float ASPECT_RATIO = static_cast<float>(characters_per_row) / static_cast<float>(number_of_columns);  // Width divided by height
 float dy = 0;
@@ -208,70 +204,112 @@ std::vector<std::vector<std::vector<int>>> textures =
     //0 null
     {
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
 
 
@@ -1033,70 +1071,113 @@ std::vector<std::vector<std::vector<int>>> colors =
     //0 null
     {
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
         {
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         },
 
 
@@ -1123,7 +1204,7 @@ std::vector<std::vector<std::vector<int>>> colors =
         },
 
         {
-            10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+                10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
                 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
                 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
                 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
@@ -3980,24 +4061,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     return (int)msg.wParam;
 }
 
-void add_to_inventory(int inventory[45][64], int item_id) {
-    bool item_added = false;
+void add_to_inventory(int inventory[45][2], int item_id) {
     for (int i = 0; i < 45; i++) {
         if (inventory[i][0] == item_id) {
-            for (int j = 0; j < 64; j++) {
-                if (inventory[i][j] == 0) {
-                    inventory[i][j] = item_id;
-                    item_added = true;
-                    break;
-                }
+            if (inventory[i][1] < 64) {
+                inventory[i][1]++;
+                break;
             }
         }
         else if (inventory[i][0] == 0) {
             inventory[i][0] = item_id;
-            break;
-        }
-
-        if (item_added == true) {
+            inventory[i][1] = 1;
             break;
         }
     }
@@ -4013,13 +4087,25 @@ void draw_rect(int screen[number_of_columns * characters_per_row][3], int x, int
     }
 }
 
+void draw_half_rect(int screen[number_of_columns * characters_per_row][3], int x, int y, int l_x, int l_y, int color, int brightness) {
+    for (int x0 = min(x, x + l_x); x0 < max(x, x + l_x); x0++) {
+        for (int y0 = min(y, y + l_y); y0 < max(y, y + l_y); y0++) {
+            if ((x0 + y0) % 2 == 0) {
+                screen[x0 + y0 * characters_per_row][0] = 0;
+                screen[x0 + y0 * characters_per_row][1] = color;
+                screen[x0 + y0 * characters_per_row][2] = brightness;
+            }
+        }
+    }
+}
+
 void draw_textured_rect(int screen[number_of_columns * characters_per_row][3], int x, int y, int l_x, int l_y, int texture_id, int color_id) {
     for (int x0 = min(x, x + l_x); x0 < max(x, x + l_x); x0++) {
         for (int y0 = min(y, y + l_y); y0 < max(y, y + l_y); y0++) {
             screen[x0 + y0 * characters_per_row][0] = 0;
             float V_co = static_cast<float>(x0 - min(x, x + l_x)) / l_x;
             float U_co = static_cast<float>(y0 - min(y, y + l_y)) / l_y;
-            int color = colors[color_id / 6][color_id % 6][(texture_size)*floor(U_co * (texture_size - 1)) + V_co * (texture_size - 1)];
+            int color = colors[color_id / 6][color_id % 6][(texture_size)*floor(U_co * (texture_size - 1)) + floor(V_co * (texture_size - 1))];
             int brightness = characters.size() - 1 - textures[texture_id / 6][texture_id % 6][(texture_size)*floor(U_co * (texture_size - 1)) + V_co * (texture_size - 1)];
             screen[x0 + y0 * characters_per_row][1] = color;
             screen[x0 + y0 * characters_per_row][2] = brightness;
@@ -4042,7 +4128,7 @@ void draw_digit(int screen[number_of_columns * characters_per_row][3], int x, in
     }
 }
 
-void draw_hotbar(int inventory[45][64], int screen[characters_per_row * number_of_columns][3]) {
+void draw_hotbar(int inventory[55][2], int screen[characters_per_row * number_of_columns][3]) {
     int y = (5 * number_of_columns / 6);
     int l_y = (1 * number_of_columns / 9);
     int x = (1 * characters_per_row / 8);
@@ -4056,12 +4142,7 @@ void draw_hotbar(int inventory[45][64], int screen[characters_per_row * number_o
     for (int i = 0; i < 9; i++) {
         //
         if (inventory[i][0] != 0) {
-            int s;
-            for (s = 1; s < 64; s++) {
-                if (inventory[i][s] == 0) {
-                    break;
-                }
-            }
+            int s=inventory[i][1];
             draw_textured_rect(screen, x, y, l_x / 10, l_y, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
             if (s > 9) {
                 draw_digit(screen, x + l_x / 30 + 1, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s / 10);
@@ -4138,15 +4219,15 @@ void getConsoleDimensions(int& width, int& height, HWND hwnd) {
     }
 }
 
-std::tuple<int, int> getMousePositionInConsole(HANDLE hConsoleOutput, HWND hwnd) {
-    POINT p;
+void getMousePositionInConsole(HANDLE hConsoleOutput, HWND hwnd, std::tuple<int, int>& coord) {
+    /*POINT p;
     // Get current cursor position in screen coordinates
     if (GetCursorPos(&p)) {
         // Get console window handle
         HWND hwndConsole = GetConsoleWindow();
 
         // Convert screen coordinates to client coordinates of console window
-        ScreenToClient(hwndConsole, &p);
+        ScreenToClient(hwnd, &p);
         CONSOLE_SCREEN_BUFFER_INFO csbi;
         GetConsoleScreenBufferInfo(hConsoleOutput, &csbi);
         //std::cout << p.x << " " << p.y<< std::endl;
@@ -4160,17 +4241,40 @@ std::tuple<int, int> getMousePositionInConsole(HANDLE hConsoleOutput, HWND hwnd)
 
     columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
     rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-    //std::cout << width << " " << columns << " " << height << " " << rows << std::endl;
-    int p_x = (static_cast<int>(p.x) * columns) / width;
-    int p_y = (static_cast<int>(p.y) * rows) / height;
+    columns = characters_per_row;
+    rows = number_of_columns;
+    //std::cout << width << " " << p.x << " " << height << " " << p.y << std::endl;
+    int p_x = (static_cast<float>(p.x) * columns) / width;
+    int p_y = (static_cast<float>(p.y) * rows) / height;
+    coord = std::make_tuple(p_x, p_y);
+    return;*/
+    /*POINT p;
+    GetCursorPos(&p);
+    std::get<0>(coord) += (p.x - 500)*0.5;
+    std::get<1>(coord) += (p.y - 500)*0.5;
+    SetCursorPos(500, 500);
+    return;
+    //std::tuple<int, int> coord = std::make_tuple(p_x, p_y);
+    //return coord;*/
+    if (GetAsyncKeyState(VK_UP) & 0x8000) {
+        std::get<1>(coord) -= 5;
+    }
+    if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
+        std::get<1>(coord) += 5;
 
-    std::tuple<int, int> coord = std::make_tuple(p_x, p_y);
-    return coord;
+    }
+    if (GetAsyncKeyState(VK_LEFT) & 0x8000) {
+        std::get<0>(coord) -= 5;
+    }
+    if (GetAsyncKeyState(VK_RIGHT) & 0x8000) {
+        std::get<0>(coord) += 5;
+    }
+    return;
 }
 
 
 
-void draw_inventory(int screen[characters_per_row * number_of_columns][3], int inventory[45][64], std::tuple<int, int> mousePosition) {
+void draw_inventory(int screen[characters_per_row * number_of_columns][3], int inventory[55][2], std::tuple<int, int> mousePosition, int& selected_slot, bool& mouse_cooldown) {
     int mousePosition_x = std::get<0>(mousePosition);
     int mousePosition_y = std::get<1>(mousePosition);
 
@@ -4180,18 +4284,10 @@ void draw_inventory(int screen[characters_per_row * number_of_columns][3], int i
     int l_x = (3 * characters_per_row / 4);
     draw_rect(screen, x, y, l_x, l_y, 0, 0);
     int i = 0;
-    //draw_rect(screen, mousePosition.X, mousePosition.Y, 20, 20, 7, 7);
     for (int y0 = y; y0 < y + l_y; y0 += l_y / 5) {
         for (int x0 = x; x0 < x + l_x; x0 += l_x / 9 + 1) {
-
+            int s=inventory[i][1];
             if (inventory[i][0] != 0) {
-                int s;
-                for (s = 1; s < 64; s++) {
-                    if (inventory[i][s] == 0) {
-                        break;
-                    }
-                }
-
                 draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
                 if (s > 9) {
                     draw_digit(screen, x0 + l_x / 30 + 1, y0 + 2 * l_y / 18+1, l_x / 30, l_y / 18, 0, 0, s / 10);
@@ -4205,14 +4301,168 @@ void draw_inventory(int screen[characters_per_row * number_of_columns][3], int i
 
                 draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 0);
             }
-            /*if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
-                draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 7, 7);
+            if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
+                if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && !mouse_cooldown) {
+                    mouse_cooldown = true;
+                    if (selected_slot != -1) {
+                        int selected_item = inventory[i][0];
+                        int number_of_item = s;
+                        inventory[i][0] = inventory[selected_slot][0];
+                        inventory[i][1] = inventory[selected_slot][1];
+
+                        inventory[selected_slot][0] = selected_item;
+                        inventory[selected_slot][1] = number_of_item;
+                        selected_slot = -1;
+                    }
+                    else {
+                        if (inventory[i][0] != 0) {
+                            selected_slot = i;
+                        }
+                    }
+                }
+                draw_half_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 1);
             }
             else {
-                draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 5, 5);
-            }*/
+                //draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 5, 5);
+            }
             i++;
         }
+    }
+    if (mousePosition_x>0 && mousePosition_x<characters_per_row-5 && mousePosition_y>0 && mousePosition_y<number_of_columns-5) {
+        draw_rect(screen, mousePosition_x, mousePosition_y, 5, 5, 7, 7);
+    }
+    //draw_rect(screen, mousePosition_x, mousePosition_y, 10, 10,1,1);
+}
+
+void draw_crafting(int screen[characters_per_row * number_of_columns][3], int inventory[55][2], std::tuple<int, int> mousePosition, int& selected_slot, bool& mouse_cooldown) {
+    int mousePosition_x = std::get<0>(mousePosition);
+    int mousePosition_y = std::get<1>(mousePosition);
+
+    const int y = (number_of_columns / 6);
+    const int l_y = (4 * number_of_columns / 6);
+    const int x = (1 * characters_per_row / 8);
+    const int l_x = (3 * characters_per_row / 4);
+    draw_rect(screen, x, y, l_x, l_y, 7, 11);
+    int i = 0;
+    for (int y0 = y; y0 < y+1; y0 += l_y / 5) {
+        for (int x0 = x; x0 < x + l_x; x0 += l_x / 9 + 1) {
+            int s = inventory[i][1];
+            if (inventory[i][0] != 0) {
+                draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
+                if (s > 9) {
+                    draw_digit(screen, x0 + l_x / 30 + 1, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s / 10);
+                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s % 10);
+                }
+                else {
+                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s);
+                }
+            }
+            else {
+
+                draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 0);
+            }
+            if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
+                if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && !mouse_cooldown) {
+                    mouse_cooldown = true;
+                    if (selected_slot != -1) {
+                        int selected_item = inventory[i][0];
+                        int number_of_item = s;
+                        inventory[i][0] = inventory[selected_slot][0];
+                        inventory[i][1] = inventory[selected_slot][1];
+
+                        inventory[selected_slot][0] = selected_item;
+                        inventory[selected_slot][1] = number_of_item;
+                        selected_slot = -1;
+                    }
+                    else {
+                        if (inventory[i][0] != 0) {
+                            selected_slot = i;
+                        }
+                    }
+                }
+                draw_half_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 1);
+            }
+            else {
+                //draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 5, 5);
+            }
+            i++;
+        }
+    }
+
+    i = 45;
+    for (int y0 = y+ 2*l_y / 5; y0 < y + 5*l_y / 5; y0 += l_y / 5) {
+        for (int x0 = x+ 3*(l_x / 9 + 1); x0 < x + 2*l_x/3; x0 += l_x / 9 + 1) {
+            int s = inventory[i][1];
+            if (inventory[i][0] != 0) {
+                draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
+                if (s > 9) {
+                    draw_digit(screen, x0 + l_x / 30 + 1, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s / 10);
+                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s % 10);
+                }
+                else {
+                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s);
+                }
+            }
+            else {
+
+                draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 0);
+            }
+            if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
+                if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && !mouse_cooldown) {
+                    mouse_cooldown = true;
+                    if (selected_slot != -1) {
+                        int selected_item = inventory[i][0];
+                        int number_of_item = s;
+                        inventory[i][0] = inventory[selected_slot][0];
+                        inventory[i][1] = inventory[selected_slot][1];
+
+                        inventory[selected_slot][0] = selected_item;
+                        inventory[selected_slot][1] = number_of_item;
+                        selected_slot = -1;
+                    }
+                    else {
+                        if (inventory[i][0] != 0) {
+                            selected_slot = i;
+                        }
+                    }
+                }
+                draw_half_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 1);
+            }
+            i++;
+        }
+    }
+
+    int x0 = x + 7 * (l_x / 9 + 1);
+    int y0 = y + 3 * l_y / 5;
+    int s = inventory[i][1];
+    if (inventory[i][0] != 0) {
+        draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
+        if (s > 9) {
+            draw_digit(screen, x0 + l_x / 30 + 1, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s / 10);
+            draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s % 10);
+        }
+        else {
+            draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s);
+        }
+    }
+    else {
+
+        draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 0);
+    }
+    if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
+        if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && !mouse_cooldown) {
+            mouse_cooldown = true;
+            if (selected_slot==-1) {
+                if (inventory[i][0] != 0) {
+                    selected_slot = i;
+                }
+            }
+        }
+        draw_half_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 1);
+    }
+    
+    if (mousePosition_x > 0 && mousePosition_x < characters_per_row - 5 && mousePosition_y>0 && mousePosition_y < number_of_columns - 5) {
+        draw_rect(screen, mousePosition_x, mousePosition_y, 5, 5, 7, 7);
     }
     //draw_rect(screen, mousePosition_x, mousePosition_y, 10, 10,1,1);
 }
@@ -4231,9 +4481,22 @@ HWND findConsoleWindow(const std::wstring& windowTitle) {
     return FindWindow(NULL, windowTitle.c_str());
 }
 
+void reset_button_cooldowns(bool& mouse_cooldown, bool& E_cooldown, bool& C_cooldown) {
+    if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
+        mouse_cooldown = false;
+    }
+    if (!(GetAsyncKeyState('E') & 0x8000)) {
+        E_cooldown = false;
+    }
+    if (!(GetAsyncKeyState('C') & 0x8000)) {
+        C_cooldown = false;
+    }
+}
+
 int main() {
     std::wstring newTitle = L"My Console Window";
     setConsoleTitle(newTitle);
+
 
     HWND hwndConsole = findConsoleWindow(newTitle);
     if (hwndConsole != NULL) {
@@ -4243,23 +4506,50 @@ int main() {
         DWORD error = GetLastError();
         std::cerr << "Error: FindWindow failed with error code " << error << std::endl;
     }
+    SetCursorPos(500, 500);
+    std::tuple<int, int> mousePosition = std::make_tuple(100, 100);
+
     //Sleep(1);
     bool show_inventory = false;
+    int UI_state = 0;
+    //0 hotbar
+    //1 inventory E
+    //2 crafting C
+
+    bool mouse_cooldown = false;
+    bool E_cooldown = false;
+    bool C_cooldown = false;
+
     const int number_of_screen_variables = 3;
     int(*screen)[number_of_screen_variables] = new int[characters_per_row * number_of_columns][number_of_screen_variables];
+    int selected_inventory_slot = -1;
     //z
     //color
     //brigthness
-    int inventory[45][64];
-    for (int i = 0; i < 45; i++) {
-        for (int j = 0; j < 64; j++) {
-            inventory[i][j] = 0;
+    int inventory[55][2];
+    for (int i = 0; i < 55; i++) {
+        for (int j = 0; j < 2; j++) {
+            if (i < 7) {
+                inventory[i][j] = i;
+            }
+            else {
+                inventory[i][j] = 0;
+            }
         }
     }
+
+    inventory[54][0] = 2;
+    inventory[54][1] = 2;
+
+
     int selected_item = 0;
     //std::cout << "vey pre" << std::endl;
     fill_screen(screen);
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_CURSOR_INFO cursorInfo;
+    cursorInfo.bVisible = false;
+    cursorInfo.dwSize = 1;
+    GetConsoleCursorInfo(hConsole, &cursorInfo);
     CONSOLE_FONT_INFOEX fontInfo;
     fontInfo.cbSize = sizeof(fontInfo);
     GetCurrentConsoleFontEx(hConsole, FALSE, &fontInfo);
@@ -4302,9 +4592,6 @@ int main() {
     HWND hWnd = GetConsoleWindow();    //SetConsoleCursorPosition(hConsole, pos);
     bool mouse_lock = true;
     HANDLE hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    //COORD mousePosition = { -1, -1 };
-
 
     while (true) {
         if (GetAsyncKeyState('O') & 0x8000) { // Check if 'O' key is pressed
@@ -4424,10 +4711,7 @@ int main() {
             }
             if (x2 != 0 && x2 == std::get<0>(block_to_break) && y2 == std::get<1>(block_to_break) && z2 == std::get<2>(block_to_break)) {
                 block_breaking_state += delta_time;
-                //std::cout << block_breaking_state << std::endl;
-
-                //Sleep(200);
-                if (block_breaking_state > 0) {
+                if (block_breaking_state > 1) {
                     block_breaking_state = 0;
                     int cx = (16 + static_cast<int>(x2) % 16) % 16;
                     int cy = (16 + static_cast<int>(y2) % 16) % 16;
@@ -4436,9 +4720,6 @@ int main() {
                         std::tuple<int, int, int> key = std::make_tuple(x2 / 16, y2 / 16, z2 / 16);
                         std::vector<uint64_t>& chunk = map_chunks.find(key)->second;
                         add_to_inventory(inventory, 1 + (chunk[16 * cz + cy] >> 4 * cx) & 0b1111);
-                        //int cx = (16 + x % 16) % 16;
-                        //int cy = (16 + y % 16) % 16;
-                        //int cz = (16 + z % 16) % 16;
                         chunk[16 * cz + cy] &= ~(static_cast<uint64_t>(0b1111) << (4 * cx));
                     }
                     std::vector<std::vector<int>> blocks = { {x2,y2,z2},{x2 + 1,y2 + 0,z2 + 0},{x2 - 1,y2 + 0,z2 + 0},{x2 + 0,y2 + 1,z2 + 0},{x2 + 0,y2 - 1,z2 + 0},{x2 + 0,y2 + 0,z2 + 1},{x2 + 0,y2 + 0,z2 - 1} };
@@ -4491,13 +4772,9 @@ int main() {
                     int x2, y2, z2;
                     std::tie(x2, y2, z2) = key2;
                     if (x2 != 0) {
-                        for (int i = 0; i < 64; i++) {
-                            if (inventory[selected_item][i] == 0) {
-                                inventory[selected_item][i - 1] = 0;
-                            }
-                            else if (i == 63) {
-                                inventory[selected_item][i] = 0;
-                            }
+                        inventory[selected_item][1]--;
+                        if (inventory[selected_item][1] == 0) {
+                            inventory[selected_item][0] = 0;
                         }
                     }
                     building_delay = 0.1;
@@ -4522,26 +4799,44 @@ int main() {
             slimes[i].dz = -entiti_direction[1];
             entiti_physics(slimes[i], min(0.1, delta_time), blocks_from_neighboring_chunks(map_chunks, slimes[i].x, slimes[i].y, slimes[i].z));
         }
-
-        if (GetAsyncKeyState('R') & 0x8000) {
-            if (show_inventory == false) {
-                show_inventory = true;
+        if (GetAsyncKeyState('E') & 0x8000 && !E_cooldown) {
+            E_cooldown = true;
+            if (UI_state != 1) {
+                UI_state = 1;
             }
             else {
-                show_inventory = false;
+                UI_state = 0;
             }
-            Sleep(10);
         }
-        std::tuple<int, int> mousePosition = getMousePositionInConsole(hConsoleOutput, hwndConsole);
-        controls(x_rotation, y_rotation, px, py, pz, min(0.05, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
+        if (GetAsyncKeyState('C') & 0x8000 && !C_cooldown) {
+            C_cooldown = true;
+            if (UI_state != 2) {
+                UI_state = 2;
+            }
+            else {
+                UI_state = 0;
+            }
+        }
         update_screen(screen, map_triangles, slimes, x_rotation, y_rotation, px, py, pz);
-        if (show_inventory) {
-            draw_inventory(screen, inventory, mousePosition);
+        switch (UI_state) {
+            case 0:
+                controls(x_rotation, y_rotation, px, py, pz, min(0.05, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
+                draw_hotbar(inventory, screen);
+                break;
+            case 1:
+                getMousePositionInConsole(hConsoleOutput, hwndConsole, mousePosition);
+                draw_inventory(screen, inventory, mousePosition, selected_inventory_slot, mouse_cooldown);
+                break;
+            case 2:
+                getMousePositionInConsole(hConsoleOutput, hwndConsole, mousePosition);
+                draw_crafting(screen, inventory, mousePosition, selected_inventory_slot, mouse_cooldown);
+                break;
         }
-        else {
-            draw_hotbar(inventory, screen);
-        }
+        reset_button_cooldowns(mouse_cooldown, E_cooldown, C_cooldown);
         draw_screen(screen);
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
+            return 0;
+        }
     }
     return 0;
-}
+}    
