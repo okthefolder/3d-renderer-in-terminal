@@ -4362,7 +4362,23 @@ void draw_inventory(int screen[characters_per_row * number_of_columns][3], int i
     //draw_rect(screen, mousePosition_x, mousePosition_y, 10, 10,1,1);
 }
 
+int wood_recipe[9] = { 2,0,0,0,0,0,0,0,0 };
+
 int check_recipes(int inventory[55][2]) {
+    int crafting_table[9];
+    for (int i = 0; i < 9; i++) {
+        crafting_table[i] = inventory[45 + i][0];
+    }
+    bool match = true;
+    for (int i = 0; i < 9; i++) {
+        if (crafting_table[i] != wood_recipe[i]) {
+            match = false;
+        }
+    }
+    if (match == true) {
+        return 5;
+    }
+
     return 0;
 }
 
