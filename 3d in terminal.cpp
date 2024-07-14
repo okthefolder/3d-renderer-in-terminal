@@ -4391,6 +4391,7 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
     const int x = (1 * characters_per_row / 8);
     const int l_x = (3 * characters_per_row / 4);
     draw_rect(screen, x, y, l_x, l_y, 7, 11);
+    int item_id = check_recipes(inventory);
     int i = 0;
     for (int y0 = y; y0 < y+1; y0 += l_y / 5) {
         for (int x0 = x; x0 < x + l_x; x0 += l_x / 9 + 1) {
@@ -4413,14 +4414,26 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
                 if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && !mouse_L_cooldown) {
                     mouse_L_cooldown = true;
                     if (selected_slot != -1) {
-                        int selected_item = inventory[i][0];
-                        int number_of_item = s;
-                        inventory[i][0] = inventory[selected_slot][0];
-                        inventory[i][1] = inventory[selected_slot][1];
+                        if (selected_slot != 54) {
+                            int selected_item = inventory[i][0];
+                            int number_of_item = s;
+                            inventory[i][0] = inventory[selected_slot][0];
+                            inventory[i][1] = inventory[selected_slot][1];
 
-                        inventory[selected_slot][0] = selected_item;
-                        inventory[selected_slot][1] = number_of_item;
-                        selected_slot = -1;
+                            inventory[selected_slot][0] = selected_item;
+                            inventory[selected_slot][1] = number_of_item;
+                            selected_slot = -1;
+                        }
+                        else {
+                            int selected_item = inventory[i][0];
+                            int number_of_item = s;
+                            inventory[i][0] = item_id;
+                            inventory[i][1] = inventory[selected_slot][1];
+
+                            inventory[selected_slot][0] = selected_item;
+                            inventory[selected_slot][1] = number_of_item;
+                            selected_slot = -1;
+                        }
                     }
                     else {
                         if (inventory[i][0] != 0) {
@@ -4527,7 +4540,6 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
     int x0 = x + 7 * (l_x / 9 + 1);
     int y0 = y + 3 * l_y / 5;
     int s = inventory[i][1];
-    int item_id = check_recipes(inventory);
     if (item_id != 0) {
         draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (item_id - 1) * 6, (item_id - 1) * 6);
         if (s > 9) {
@@ -4542,17 +4554,17 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
 
         draw_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 0);
     }
-    /*if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
-        if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && !mouse_cooldown) {
-            mouse_cooldown = true;
+    if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
+        if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && !mouse_L_cooldown) {
+            mouse_L_cooldown = true;
             if (selected_slot==-1) {
-                if (inventory[i][0] != 0) {
+                if (item_id != 0) {
                     selected_slot = i;
                 }
             }
         }
         draw_half_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 1);
-    }*/
+    }
     
     if (mousePosition_x > 0 && mousePosition_x < characters_per_row - 5 && mousePosition_y>0 && mousePosition_y < number_of_columns - 5) {
         draw_rect(screen, mousePosition_x, mousePosition_y, 5, 5, 7, 7);
