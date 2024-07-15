@@ -1,7 +1,3 @@
-
-
-
-
 #include <iostream>
 #include <vector>
 #include <cstdlib>
@@ -4148,7 +4144,7 @@ void draw_hotbar(int inventory[55][2], int screen[characters_per_row * number_of
     for (int i = 0; i < 9; i++) {
         //
         if (inventory[i][0] != 0) {
-            int s=inventory[i][1];
+            int s = inventory[i][1];
             draw_textured_rect(screen, x, y, l_x / 10, l_y, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
             if (s > 9) {
                 draw_digit(screen, x + l_x / 30 + 1, y + 2 * l_y / 3, l_x / 30, l_y / 3, 0, 0, s / 10);
@@ -4292,15 +4288,15 @@ void draw_inventory(int screen[characters_per_row * number_of_columns][3], int i
     int i = 0;
     for (int y0 = y; y0 < y + l_y; y0 += l_y / 5) {
         for (int x0 = x; x0 < x + l_x; x0 += l_x / 9 + 1) {
-            int s=inventory[i][1];
+            int s = inventory[i][1];
             if (inventory[i][0] != 0) {
                 draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
                 if (s > 9) {
-                    draw_digit(screen, x0 + l_x / 30 + 1, y0 + 2 * l_y / 18+1, l_x / 30, l_y / 18, 0, 0, s / 10);
-                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18+1, l_x / 30, l_y / 18, 0, 0, s % 10);
+                    draw_digit(screen, x0 + l_x / 30 + 1, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s / 10);
+                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s % 10);
                 }
                 else {
-                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18+1, l_x / 30, l_y / 18, 0, 0, s);
+                    draw_digit(screen, x0 + 2 * l_x / 30, y0 + 2 * l_y / 18 + 1, l_x / 30, l_y / 18, 0, 0, s);
                 }
             }
             else {
@@ -4356,7 +4352,7 @@ void draw_inventory(int screen[characters_per_row * number_of_columns][3], int i
             i++;
         }
     }
-    if (mousePosition_x>0 && mousePosition_x<characters_per_row-5 && mousePosition_y>0 && mousePosition_y<number_of_columns-5) {
+    if (mousePosition_x > 0 && mousePosition_x < characters_per_row - 5 && mousePosition_y>0 && mousePosition_y < number_of_columns - 5) {
         draw_rect(screen, mousePosition_x, mousePosition_y, 5, 5, 7, 7);
     }
     //draw_rect(screen, mousePosition_x, mousePosition_y, 10, 10,1,1);
@@ -4393,7 +4389,7 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
     draw_rect(screen, x, y, l_x, l_y, 7, 11);
     int item_id = check_recipes(inventory);
     int i = 0;
-    for (int y0 = y; y0 < y+1; y0 += l_y / 5) {
+    for (int y0 = y; y0 < y + 1; y0 += l_y / 5) {
         for (int x0 = x; x0 < x + l_x; x0 += l_x / 9 + 1) {
             int s = inventory[i][1];
             if (inventory[i][0] != 0) {
@@ -4428,10 +4424,18 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
                             int selected_item = inventory[i][0];
                             int number_of_item = s;
                             inventory[i][0] = item_id;
-                            inventory[i][1] = inventory[selected_slot][1];
+                            inventory[i][1] = 1;
 
-                            inventory[selected_slot][0] = selected_item;
-                            inventory[selected_slot][1] = number_of_item;
+                            for (int i = 45; i < 54;i++){
+                                if (inventory[i][0] != 0) {
+                                    inventory[i][1]--;
+                                    if (inventory[i][1] == 0) {
+                                        inventory[i][0] = 0;
+                                    }
+                                }
+                            }
+                            inventory[selected_slot][0] = 0;
+                            inventory[selected_slot][1] = 0;
                             selected_slot = -1;
                         }
                     }
@@ -4473,8 +4477,8 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
     }
 
     i = 45;
-    for (int y0 = y+ 2*l_y / 5; y0 < y + 5*l_y / 5; y0 += l_y / 5) {
-        for (int x0 = x+ 3*(l_x / 9 + 1); x0 < x + 2*l_x/3; x0 += l_x / 9 + 1) {
+    for (int y0 = y + 2 * l_y / 5; y0 < y + 5 * l_y / 5; y0 += l_y / 5) {
+        for (int x0 = x + 3 * (l_x / 9 + 1); x0 < x + 2 * l_x / 3; x0 += l_x / 9 + 1) {
             int s = inventory[i][1];
             if (inventory[i][0] != 0) {
                 draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (inventory[i][0] - 1) * 6, (inventory[i][0] - 1) * 6);
@@ -4539,7 +4543,7 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
 
     int x0 = x + 7 * (l_x / 9 + 1);
     int y0 = y + 3 * l_y / 5;
-    int s = inventory[i][1];
+    int s = 1;
     if (item_id != 0) {
         draw_textured_rect(screen, x0, y0, l_x / 10, l_y / 6, (item_id - 1) * 6, (item_id - 1) * 6);
         if (s > 9) {
@@ -4557,7 +4561,7 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
     if (mousePosition_x > x0 && mousePosition_x < x0 + l_x / 10 && mousePosition_y > y0 && mousePosition_y < y0 + l_y / 6) {
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && !mouse_L_cooldown) {
             mouse_L_cooldown = true;
-            if (selected_slot==-1) {
+            if (selected_slot == -1) {
                 if (item_id != 0) {
                     selected_slot = i;
                 }
@@ -4565,7 +4569,7 @@ void draw_crafting(int screen[characters_per_row * number_of_columns][3], int in
         }
         draw_half_rect(screen, x0, y0, l_x / 10, l_y / 6, 15, 1);
     }
-    
+
     if (mousePosition_x > 0 && mousePosition_x < characters_per_row - 5 && mousePosition_y>0 && mousePosition_y < number_of_columns - 5) {
         draw_rect(screen, mousePosition_x, mousePosition_y, 5, 5, 7, 7);
     }
@@ -4929,18 +4933,18 @@ int main() {
         }
         update_screen(screen, map_triangles, slimes, x_rotation, y_rotation, px, py, pz);
         switch (UI_state) {
-            case 0:
-                controls(x_rotation, y_rotation, px, py, pz, min(0.05, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
-                draw_hotbar(inventory, screen);
-                break;
-            case 1:
-                getMousePositionInConsole(hConsoleOutput, hwndConsole, mousePosition);
-                draw_inventory(screen, inventory, mousePosition, selected_inventory_slot, mouse_L_cooldown, mouse_R_cooldown);
-                break;
-            case 2:
-                getMousePositionInConsole(hConsoleOutput, hwndConsole, mousePosition);
-                draw_crafting(screen, inventory, mousePosition, selected_inventory_slot, mouse_L_cooldown, mouse_R_cooldown);
-                break;
+        case 0:
+            controls(x_rotation, y_rotation, px, py, pz, min(0.05, delta_time), blocks_from_neighboring_chunks(map_chunks, px, py, pz));
+            draw_hotbar(inventory, screen);
+            break;
+        case 1:
+            getMousePositionInConsole(hConsoleOutput, hwndConsole, mousePosition);
+            draw_inventory(screen, inventory, mousePosition, selected_inventory_slot, mouse_L_cooldown, mouse_R_cooldown);
+            break;
+        case 2:
+            getMousePositionInConsole(hConsoleOutput, hwndConsole, mousePosition);
+            draw_crafting(screen, inventory, mousePosition, selected_inventory_slot, mouse_L_cooldown, mouse_R_cooldown);
+            break;
         }
         reset_button_cooldowns(mouse_L_cooldown, mouse_R_cooldown, E_cooldown, C_cooldown);
         draw_screen(screen);
@@ -4949,4 +4953,4 @@ int main() {
         }
     }
     return 0;
-}    
+}
